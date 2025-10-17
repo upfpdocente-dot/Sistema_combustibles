@@ -7,7 +7,25 @@ import json
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from io import StringIO, BytesIO
+import sys
+import subprocess
+import os
 
+# VERIFICAR Y FORZAR PYTHON 3.11
+def check_python_version():
+    version = sys.version_info
+    print(f"🔍 Python version: {version.major}.{version.minor}.{version.micro}")
+    
+    if version.major == 3 and version.minor >= 13:
+        print("❌ ERROR: Python 3.13+ no es compatible con psycopg2")
+        print("⚠️  Render está forzando una versión incompatible")
+        return False
+    return True
+
+# Ejecutar verificación al importar
+if not check_python_version():
+    print("🚨 SE DETIENE LA APLICACIÓN POR INCOMPATIBILIDAD")
+    sys.exit(1)
 # Crear la aplicación Flask primero
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'clave_secreta_sistema_combustibles_2024')
@@ -784,4 +802,5 @@ def create_tables():
 # Inicializar la base de datos cuando se ejecute el archivo directamente
 if __name__ == '__main__':
     create_tables()
+
     app.run(debug=True, host='0.0.0.0', port=5000)

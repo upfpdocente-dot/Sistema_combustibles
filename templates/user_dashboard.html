@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Usuario - Sistema de Combustibles</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a2a6c;
+            --secondary: #b21f1f;
+            --accent: #fdbb2d;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        
+        .table th {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 15px;
+        }
+        
+        .volume-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .volume-high { background-color: var(--success); }
+        .volume-medium { background-color: var(--warning); }
+        .volume-low { background-color: var(--danger); }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            border-color: var(--success);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(26, 42, 108, 0.25);
+        }
+        
+        .last-update {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="header">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="text-primary mb-0"><i class="fas fa-gas-pump me-2"></i>Panel de Usuario</h1>
+                    <p class="text-muted mb-0">Bienvenido, {{ funcionario }}</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <a href="/logout" class="btn btn-outline-primary">
+                        <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas Rápidas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body text-center">
+                        <h4 class="card-title">{{ fuel_data|length }}</h4>
+                        <p class="card-text">Estaciones Asignadas</p>
+                        <i class="fas fa-gas-pump fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body text-center">
+                        <h4 class="card-title">{{ fuel_data|selectattr('estadoVolumen.text', 'equalto', 'ALTO')|list|length }}</h4>
+                        <p class="card-text">Estaciones ALTO</p>
+                        <i class="fas fa-chart-line fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body text-center">
+                        <h4 class="card-title">{{ fuel_data|selectattr('estadoVolumen.text', 'equalto', 'MEDIO')|list|length }}</h4>
+                        <p class="card-text">Estaciones MEDIO</p>
+                        <i class="fas fa-chart-bar fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-danger">
+                    <div class="card-body text-center">
+                        <h4 class="card-title">{{ fuel_data|selectattr('estadoVolumen.text', 'equalto', 'BAJO')|list|length }}</h4>
+                        <p class="card-text">Estaciones BAJO</p>
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Estaciones Asignadas -->
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-table me-2"></i> Mis Estaciones Asignadas</span>
+                <span class="badge bg-light text-dark">Total: {{ fuel_data|length }} estaciones</span>
+            </div>
+            <div class="card-body">
+                {% if fuel_data %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>CODIGO</th>
+                                <th>RAZON SOCIAL</th>
+                                <th>ZONA</th>
+                                <th>PROVINCIA</th>
+                                <th>MUNICIPIO</th>
+                                <th>DO/DO+</th>
+                                <th>DO ULS+</th>
+                                <th>GE/GE+</th>
+                                <th>GP+</th>
+                                <th>GP ULTRA 100</th>
+                                <th>FILAS DO/DO+</th>
+                                <th>FILAS GE/GE+</th>
+                                <th>TOTAL</th>
+                                <th>ESTADO</th>
+                                <th>ÚLTIMA ACTUALIZACIÓN</th>
+                                <th>ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in fuel_data %}
+                            <tr>
+                                <td><strong>{{ item.codigo }}</strong></td>
+                                <td>{{ item.razonSocial }}</td>
+                                <td>{{ item.zona }}</td>
+                                <td>{{ item.provincia }}</td>
+                                <td>{{ item.municipio }}</td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" 
+                                           value="{{ item.doDoPlus }}" 
+                                           data-field="do_do_plus"
+                                           data-codigo="{{ item.codigo }}">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" 
+                                           value="{{ item.doUlsPlus }}" 
+                                           data-field="do_uls_plus"
+                                           data-codigo="{{ item.codigo }}">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" 
+                                           value="{{ item.geGePlus }}" 
+                                           data-field="ge_ge_plus"
+                                           data-codigo="{{ item.codigo }}">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" 
+                                           value="{{ item.gpPlus }}" 
+                                           data-field="gp_plus"
+                                           data-codigo="{{ item.codigo }}">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" 
+                                           value="{{ item.gpUltra100 }}" 
+                                           data-field="gp_ultra_100"
+                                           data-codigo="{{ item.codigo }}">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" 
+                                           value="{{ item.filasDoDoPlus }}" 
+                                           data-field="filas_do_do_plus"
+                                           data-codigo="{{ item.codigo }}">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" 
+                                           value="{{ item.filasGeGePlus }}" 
+                                           data-field="filas_ge_ge_plus"
+                                           data-codigo="{{ item.codigo }}">
+                                </td>
+                                <td><strong>{{ "{:,.0f}".format(item.volumenTotal) }}</strong></td>
+                                <td>
+                                    <span class="badge bg-{{ item.estadoVolumen.color }}">
+                                        <span class="volume-indicator {{ item.estadoVolumen.class }}"></span>
+                                        {{ item.estadoVolumen.text }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="last-update">{{ item.fechaHora }}</small>
+                                </td>
+                                <td>
+                                    <button class="btn btn-success btn-sm actualizar-btn" 
+                                            data-codigo="{{ item.codigo }}"
+                                            data-razon-social="{{ item.razonSocial }}"
+                                            data-zona="{{ item.zona }}"
+                                            data-provincia="{{ item.provincia }}"
+                                            data-municipio="{{ item.municipio }}">
+                                        <i class="fas fa-save me-1"></i>Guardar
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No tiene estaciones asignadas</h4>
+                    <p class="text-muted">Contacte al administrador para que le asigne estaciones.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Instrucciones -->
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Instrucciones</h5>
+            </div>
+            <div class="card-body">
+                <p>Para actualizar los datos de una estación:</p>
+                <ol>
+                    <li>Modifique los valores en los campos correspondientes</li>
+                    <li>Haga clic en el botón <strong>"Guardar"</strong> de la fila que desea actualizar</li>
+                    <li>Los cambios se guardarán automáticamente y se registrará la fecha/hora de actualización</li>
+                    <li>El sistema mantiene un historial completo de todas las actualizaciones</li>
+                </ol>
+                <p class="text-muted mb-0"><small>Los campos deben contener solo números (litros y filas)</small></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Función para actualizar estación
+            document.querySelectorAll('.actualizar-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const codigo = this.getAttribute('data-codigo');
+                    const razonSocial = this.getAttribute('data-razon-social');
+                    const zona = this.getAttribute('data-zona');
+                    const provincia = this.getAttribute('data-provincia');
+                    const municipio = this.getAttribute('data-municipio');
+                    const fila = this.closest('tr');
+                    
+                    // Recopilar datos de la fila
+                    const datos = {
+                        codigo: codigo,
+                        razon_social: razonSocial,
+                        zona: zona,
+                        provincia: provincia,
+                        municipio: municipio,
+                        do_do_plus: parseInt(fila.querySelector('[data-field="do_do_plus"]').value) || 0,
+                        do_uls_plus: parseInt(fila.querySelector('[data-field="do_uls_plus"]').value) || 0,
+                        ge_ge_plus: parseInt(fila.querySelector('[data-field="ge_ge_plus"]').value) || 0,
+                        gp_plus: parseInt(fila.querySelector('[data-field="gp_plus"]').value) || 0,
+                        gp_ultra_100: parseInt(fila.querySelector('[data-field="gp_ultra_100"]').value) || 0,
+                        filas_do_do_plus: parseInt(fila.querySelector('[data-field="filas_do_do_plus"]').value) || 0,
+                        filas_ge_ge_plus: parseInt(fila.querySelector('[data-field="filas_ge_ge_plus"]').value) || 0
+                    };
+                    
+                    // Mostrar loading
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
+                    this.disabled = true;
+                    
+                    // Enviar datos al servidor
+                    fetch('/user/actualizar_estacion', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(datos)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('✅ ' + data.message);
+                            // Recargar la página para mostrar datos actualizados
+                            location.reload();
+                        } else {
+                            alert('❌ ' + data.message);
+                            // Restaurar botón
+                            this.innerHTML = originalText;
+                            this.disabled = false;
+                        }
+                    })
+                    .catch(error => {
+                        alert('❌ Error al guardar: ' + error);
+                        // Restaurar botón
+                        this.innerHTML = originalText;
+                        this.disabled = false;
+                    });
+                });
+            });
+            
+            // Calcular total automáticamente al cambiar valores
+			// Calcular total automáticamente al cambiar valores
+			document.querySelectorAll('input[type="number"]').forEach(input => {
+				input.addEventListener('input', function() {  // Cambiado de 'change' a 'input' para actualización en tiempo real
+					const fila = this.closest('tr');
+					const totalCell = fila.querySelector('td:nth-child(13) strong');
+					
+					// Recalcular total
+					const do_do_plus = parseInt(fila.querySelector('[data-field="do_do_plus"]').value) || 0;
+					const do_uls_plus = parseInt(fila.querySelector('[data-field="do_uls_plus"]').value) || 0;
+					const ge_ge_plus = parseInt(fila.querySelector('[data-field="ge_ge_plus"]').value) || 0;
+					const gp_plus = parseInt(fila.querySelector('[data-field="gp_plus"]').value) || 0;
+					const gp_ultra_100 = parseInt(fila.querySelector('[data-field="gp_ultra_100"]').value) || 0;
+					
+					const total = do_do_plus + do_uls_plus + ge_ge_plus + gp_plus + gp_ultra_100;
+					totalCell.textContent = total.toLocaleString();
+					
+					// Actualizar estado visualmente
+					const estadoBadge = fila.querySelector('.badge');
+					const volumeIndicator = fila.querySelector('.volume-indicator');
+					
+					if (total > 7000) {
+						estadoBadge.className = 'badge bg-success';
+						volumeIndicator.className = 'volume-indicator volume-high';
+						estadoBadge.innerHTML = '<span class="volume-indicator volume-high"></span>ALTO';
+					} else if (total >= 3000) {
+						estadoBadge.className = 'badge bg-warning';
+						volumeIndicator.className = 'volume-indicator volume-medium';
+						estadoBadge.innerHTML = '<span class="volume-indicator volume-medium"></span>MEDIO';
+					} else {
+						estadoBadge.className = 'badge bg-danger';
+						volumeIndicator.className = 'volume-indicator volume-low';
+						estadoBadge.innerHTML = '<span class="volume-indicator volume-low"></span>BAJO';
+					}
+				});
+			});
+        });
+    </script>
+</body>
+</html>

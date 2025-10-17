@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión - Sistema de Combustibles{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #1a2a6c 0%, #0d1a4d 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .login-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        padding: 40px;
+        width: 100%;
+        max-width: 400px;
+    }
+    .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .login-header i {
+        font-size: 3rem;
+        color: #1a2a6c;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <i class="fas fa-gas-pump"></i>
+            <h2 class="text-primary">Sistema de Combustibles</h2>
+            <p class="text-muted">Inicie sesión para continuar</p>
+        </div>
+        
+        <form method="POST">
+            <div class="mb-3">
+                <label for="username" class="form-label">Usuario</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Contraseña</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+            </button>
+        </form>
+
+        <div class="mt-4">
+            <h6 class="text-center">Credenciales de prueba:</h6>
+            <div class="alert alert-info small">
+                <strong>Admin:</strong> admin / admin123<br>
+                <strong>Usuario:</strong> usuario1 / password123
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

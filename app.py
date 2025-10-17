@@ -7,6 +7,8 @@ import json
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from io import StringIO, BytesIO
+
+
 import sys
 import subprocess
 import os
@@ -26,32 +28,33 @@ def check_python_version():
 if not check_python_version():
     print("🚨 SE DETIENE LA APLICACIÓN POR INCOMPATIBILIDAD")
     sys.exit(1)
+
+
 # Crear la aplicación Flask primero
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'clave_secreta_sistema_combustibles_2024')
 
-# CONFIGURACIÓN PARA RENDER - CORREGIDA
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///combustibles.db')
+# ================= CONFIGURACIÓN DE BASE DE DATOS - CON MÚLTIPLES FALLBACKS =================
+def get_database_url():
+    # Opción 1: PostgreSQL de Render (producción)
+    database_url = os.environ.get('DATABASE_URL')
+    
+    if database_url:
+        # Corregir formato de URL si es necesario
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        print(f"✅ Usando PostgreSQL: {database_url.split('@')[1] if '@' in database_url else database_url}")
+        return database_url
+    
+    # Opción 2: SQLite local (para desarrollo/emergencia)
+    print("⚠️  Usando SQLite (modo emergencia)")
+    return 'sqlite:///combustibles.db'
 
-# Corrección para PostgreSQL en Render - MÁS ROBUSTA
-if database_url:
-    if database_url.startswith('postgres://'):
-        database_url = database_url.replace('postgres://', 'postgresql://', 1)
-    elif database_url.startswith('postgresql://'):
-        pass  # Ya está correcto
-else:
-    database_url = 'sqlite:///combustibles.db'
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# CONFIGURACIONES FALTANTES - AGREGADAS
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-app.config['ALLOWED_EXTENSIONS'] = {'csv', 'xlsx', 'xls'}
-
 # Configuración mejorada para PostgreSQL
-if database_url.startswith('postgresql://'):
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql://'):
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_recycle': 300,
         'pool_pre_ping': True,
@@ -61,15 +64,13 @@ if database_url.startswith('postgresql://'):
         }
     }
 
+# CONFIGURACIONES FALTANTES - AGREGADAS
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['ALLOWED_EXTENSIONS'] = {'csv', 'xlsx', 'xls'}
+
 # Inicializar SQLAlchemy después de configurar la app
 db = SQLAlchemy(app)
-
-# Crear directorio de uploads si no existe
-try:
-    os.makedirs('uploads', exist_ok=True)
-except:
-    pass
-
 # El resto del código permanece igual...
 
 # ================= MODELOS =================
@@ -802,5 +803,4 @@ def create_tables():
 # Inicializar la base de datos cuando se ejecute el archivo directamente
 if __name__ == '__main__':
     create_tables()
-
     app.run(debug=True, host='0.0.0.0', port=5000)

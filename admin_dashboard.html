@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Sistema de Combustibles</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a2a6c;
+            --secondary: #b21f1f;
+            --accent: #fdbb2d;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary) 0%, #0d1a4d 100%);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            padding: 0;
+            box-shadow: 3px 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .sidebar-brand {
+            padding: 20px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+        
+        .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 5px 10px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            border: none;
+            background: none;
+            text-align: left;
+            width: 100%;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stats-card {
+            text-align: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .stats-card.primary { background: linear-gradient(135deg, var(--primary), #2c3e50); }
+        .stats-card.success { background: linear-gradient(135deg, var(--success), #27ae60); }
+        .stats-card.warning { background: linear-gradient(135deg, var(--warning), #f39c12); }
+        .stats-card.danger { background: linear-gradient(135deg, var(--danger), #c0392b); }
+        .stats-card.info { background: linear-gradient(135deg, #17a2b8, #138496); }
+        
+        .stats-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stats-label {
+            font-size: 0.9rem;
+        }
+        
+        .stats-label small {
+            font-size: 0.7em;
+            opacity: 0.8;
+        }
+        
+        .table th {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 15px;
+        }
+        
+        .volume-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .volume-high { background-color: var(--success); }
+        .volume-medium { background-color: var(--warning); }
+        .volume-low { background-color: var(--danger); }
+        
+        .filters {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s;
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+        
+        .file-upload-area:hover {
+            border-color: var(--primary);
+            background-color: #e9f0ff;
+        }
+        
+        .tab-content {
+            padding: 20px 0;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .badge-volume {
+            font-size: 0.8em;
+            padding: 5px 10px;
+        }
+        
+        .btn-group-sm .btn {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .date-filter {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .rango-fechas-info {
+            background: #e8f4fd;
+            border-left: 4px solid #17a2b8;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .tab-datos-filters {
+            background: linear-gradient(135deg, #fdbb2d 0%, #f39c12 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .time-input {
+            font-size: 0.9rem;
+        }
+
+        /* ================= RESPONSIVE DESIGN ================= */
+        @media (max-width: 1200px) {
+            .main-content {
+                margin-left: 220px;
+            }
+            
+            .sidebar {
+                width: 220px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                width: 280px;
+            }
+            
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 1001;
+                background: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px 15px;
+            }
+            
+            .header {
+                margin-top: 60px;
+            }
+            
+            .stats-cards {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-cards {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .stats-number {
+                font-size: 1.5rem;
+            }
+            
+            .table-responsive {
+                font-size: 0.8rem;
+            }
+            
+            .date-filter .row,
+            .tab-datos-filters .row {
+                flex-direction: column;
+            }
+            
+            .date-filter .col-md-8,
+            .tab-datos-filters .col-md-8 {
+                margin-bottom: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stats-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .card {
+                margin-bottom: 15px;
+            }
+            
+            .table th, .table td {
+                padding: 8px 10px;
+                font-size: 0.75rem;
+            }
+            
+            .filters .row {
+                flex-direction: column;
+            }
+            
+            .filters .col-md-3,
+            .filters .col-md-2 {
+                margin-bottom: 10px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+
+        /* Mobile menu overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        
+        .mobile-overlay.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn d-lg-none">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-lg-2 sidebar">
+                <div class="sidebar-brand">
+                    <h3><i class="fas fa-gas-pump"></i> Combustibles</h3>
+                </div>
+                <div class="sidebar-nav">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#tab-dashboard" data-bs-toggle="tab">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tab-datos" data-bs-toggle="tab">
+                                <i class="fas fa-table me-2"></i> Datos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tab-usuarios" data-bs-toggle="tab">
+                                <i class="fas fa-users me-2"></i> Gestionar Usuarios
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tab-carga" data-bs-toggle="tab">
+                                <i class="fas fa-file-upload me-2"></i> Carga de Datos
+                            </a>
+                        </li>
+                        <li class="nav-item mt-4">
+                            <a class="nav-link" href="/logout">
+                                <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-lg-10 main-content">
+                <div class="header">
+                    <h1 class="text-primary mb-0"><i class="fas fa-tachometer-alt me-2"></i>Panel de Administración</h1>
+                    <p class="text-muted mb-0">Bienvenido, {{ username }}</p>
+                </div>
+                
+                <!-- Pestañas -->
+                <div class="tab-content">
+                    <!-- Tab Dashboard -->
+                    <div class="tab-pane fade show active" id="tab-dashboard">
+                        <!-- Filtros de Fecha y Hora para Dashboard -->
+                        <div class="date-filter">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i>Filtrar por Rango de Fechas y Horas</h5>
+                                    <form id="dateFilterForm" class="row g-3">
+                                        <div class="col-md-3">
+                                            <label for="fecha_inicio" class="form-label text-white">Fecha Inicio</label>
+                                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="fecha_fin" class="form-label text-white">Fecha Fin</label>
+                                            <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin }}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="hora_inicio" class="form-label text-white">Hora Inicio</label>
+                                            <input type="time" class="form-control time-input" id="hora_inicio" name="hora_inicio" value="{{ hora_inicio }}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="hora_fin" class="form-label text-white">Hora Fin</label>
+                                            <input type="time" class="form-control time-input" id="hora_fin" name="hora_fin" value="{{ hora_fin }}">
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="submit" class="btn btn-light w-100">
+                                                <i class="fas fa-sync-alt me-2"></i>Actualizar
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="col-md-4">
+                                    {% if fecha_inicio and fecha_fin %}
+                                    <div class="text-center">
+                                        <h6 class="text-white">Rango Actual</h6>
+                                        <p class="mb-0 text-white-50">
+                                            {{ fecha_inicio }} {% if hora_inicio %}{{ hora_inicio }}{% endif %} 
+                                            a {{ fecha_fin }} {% if hora_fin %}{{ hora_fin }}{% endif %}
+                                        </p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información del Rango -->
+                        {% if stats.rango_fechas.inicio and stats.rango_fechas.fin %}
+                        <div class="rango-fechas-info">
+                            <i class="fas fa-info-circle me-2 text-info"></i>
+                            <strong>Mostrando datos del:</strong> 
+                            {{ stats.rango_fechas.inicio }} {% if hora_inicio %}{{ hora_inicio }}{% else %}00:00{% endif %} 
+                            al {{ stats.rango_fechas.fin }} {% if hora_fin %}{{ hora_fin }}{% else %}23:59{% endif %}
+                            <span class="badge bg-primary ms-2">Última actualización por estación</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Estadísticas MEJORADAS -->
+                        <div class="stats-cards">
+                            <div class="card stats-card primary">
+                                <div class="stats-number">{{ stats.total_estaciones }}</div>
+                                <div class="stats-label">Total Estaciones</div>
+                                <i class="fas fa-gas-pump fa-2x mt-3 opacity-50"></i>
+                            </div>
+                            <div class="card stats-card success">
+                                <div class="stats-number">{{ "{:,.0f}".format(stats.total_volumen) }}</div>
+                                <div class="stats-label">Litros Totales</div>
+                                <i class="fas fa-oil-can fa-2x mt-3 opacity-50"></i>
+                            </div>
+                            <div class="card stats-card danger">
+                                <div class="stats-number">{{ stats.estaciones_rojo }}</div>
+                                <div class="stats-label">Estaciones en ROJO<br><small>(Volumen < 3,000)</small></div>
+                                <i class="fas fa-exclamation-triangle fa-2x mt-3 opacity-50"></i>
+                            </div>
+                            <div class="card stats-card warning">
+                                <div class="stats-number">{{ stats.promedio_filas_ciudad }}</div>
+                                <div class="stats-label">Promedio Filas<br><small>por Ciudad</small></div>
+                                <i class="fas fa-chart-line fa-2x mt-3 opacity-50"></i>
+                            </div>
+                            <div class="card stats-card info">
+                                <div class="stats-number">{{ stats.promedio_filas_provincia }}</div>
+                                <div class="stats-label">Promedio Filas<br><small>por Provincia</small></div>
+                                <i class="fas fa-map-marked-alt fa-2x mt-3 opacity-50"></i>
+                            </div>
+                        </div>
+
+                        <!-- Gráficos MEJORADOS -->
+                        <div class="row">
+                            <div class="col-xl-6 col-lg-12 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-chart-bar me-2"></i> Top 15 Estaciones</span>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-light active" data-producto="total">Total</button>
+                                            <button type="button" class="btn btn-light" data-producto="dos">DOS</button>
+                                            <button type="button" class="btn btn-light" data-producto="ges">GES</button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container">
+                                            <canvas id="topStationsChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-xl-6 col-lg-12 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-chart-line me-2"></i> Evolución por Producto</span>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-light active" data-producto="dos">DOS</button>
+                                            <button type="button" class="btn btn-light active" data-producto="ges">GES</button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container">
+                                            <canvas id="evolucionProductoChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Datos -->
+                    <div class="tab-pane fade" id="tab-datos">
+                        <!-- Filtros de Fecha y Hora para Tab Datos -->
+                        <div class="tab-datos-filters">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i>Filtrar Datos por Rango de Fechas y Horas</h5>
+                                    <form id="tabDatosDateFilterForm" class="row g-3">
+                                        <div class="col-md-3">
+                                            <label for="tab_datos_fecha_inicio" class="form-label text-white">Fecha Inicio</label>
+                                            <input type="date" class="form-control" id="tab_datos_fecha_inicio" name="tab_datos_fecha_inicio" value="{{ fecha_inicio }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="tab_datos_fecha_fin" class="form-label text-white">Fecha Fin</label>
+                                            <input type="date" class="form-control" id="tab_datos_fecha_fin" name="tab_datos_fecha_fin" value="{{ fecha_fin }}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="tab_datos_hora_inicio" class="form-label text-white">Hora Inicio</label>
+                                            <input type="time" class="form-control time-input" id="tab_datos_hora_inicio" name="tab_datos_hora_inicio" value="{{ hora_inicio }}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="tab_datos_hora_fin" class="form-label text-white">Hora Fin</label>
+                                            <input type="time" class="form-control time-input" id="tab_datos_hora_fin" name="tab_datos_hora_fin" value="{{ hora_fin }}">
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="submit" class="btn btn-light w-100">
+                                                <i class="fas fa-sync-alt me-2"></i>Filtrar
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="col-md-4">
+                                    {% if fecha_inicio and fecha_fin %}
+                                    <div class="text-center">
+                                        <h6 class="text-white">Rango Actual</h6>
+                                        <p class="mb-0 text-white-50">
+                                            {{ fecha_inicio }} {% if hora_inicio %}{{ hora_inicio }}{% endif %} 
+                                            a {{ fecha_fin }} {% if hora_fin %}{{ hora_fin }}{% endif %}
+                                        </p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información del Rango para Tab Datos -->
+                        {% if stats.rango_fechas.inicio and stats.rango_fechas.fin %}
+                        <div class="rango-fechas-info">
+                            <i class="fas fa-info-circle me-2 text-info"></i>
+                            <strong>Mostrando datos del:</strong> 
+                            {{ stats.rango_fechas.inicio }} {% if hora_inicio %}{{ hora_inicio }}{% else %}00:00{% endif %} 
+                            al {{ stats.rango_fechas.fin }} {% if hora_fin %}{{ hora_fin }}{% else %}23:59{% endif %}
+                            <span class="badge bg-success ms-2">Incluye FECHA Y HORA DE ACTUALIZACION</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Filtros de Búsqueda -->
+                        <div class="filters">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Buscar...">
+                                </div>
+                                <div class="col-md-2">
+                                    <select class="form-select" id="zonaFilter">
+                                        <option value="">Todas las Zonas</option>
+                                        <option value="Norte">Norte</option>
+                                        <option value="Sur">Sur</option>
+                                        <option value="Este">Este</option>
+                                        <option value="Oeste">Oeste</option>
+                                        <option value="Centro">Centro</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <select class="form-select" id="estadoFilter">
+                                        <option value="">Todos los Estados</option>
+                                        <option value="ALTO">Alto</option>
+                                        <option value="MEDIO">Medio</option>
+                                        <option value="BAJO">Bajo</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="productoFilter">
+                                        <option value="">Todos los Productos</option>
+                                        <option value="DO/DO+">DO/DO+</option>
+                                        <option value="DO ULS+">DO ULS+</option>
+                                        <option value="GE/GE+">GE/GE+</option>
+                                        <option value="GP+">GP+</option>
+                                        <option value="GP ULTRA 100">GP ULTRA 100</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 action-buttons">
+                                    <a href="/admin/export/csv?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&hora_inicio={{ hora_inicio }}&hora_fin={{ hora_fin }}" class="btn btn-success">
+                                        <i class="fas fa-file-excel me-2"></i> Exportar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-table me-2"></i> Datos de Combustibles</span>
+                                <span class="badge bg-light text-dark">Total: {{ fuel_data|length }} registros</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>CODIGO</th>
+                                                <th>RAZON SOCIAL</th>
+                                                <th>ZONA</th>
+                                                <th>PROVINCIA</th>
+                                                <th>MUNICIPIO</th>
+                                                <th>DO/DO+</th>
+                                                <th>DO ULS+</th>
+                                                <th>GE/GE+</th>
+                                                <th>GP+</th>
+                                                <th>GP ULTRA 100</th>
+                                                <th>TOTAL</th>
+                                                <th>ESTADO</th>
+                                                <th>FUNCIONARIO</th>
+                                                <th>FECHA Y HORA DE ACTUALIZACIÓN</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in fuel_data %}
+                                            <tr>
+                                                <td><strong>{{ item.codigo }}</strong></td>
+                                                <td>{{ item.razonSocial }}</td>
+                                                <td>{{ item.zona }}</td>
+                                                <td>{{ item.provincia }}</td>
+                                                <td>{{ item.municipio }}</td>
+                                                <td>{{ "{:,.0f}".format(item.doDoPlus) }}</td>
+                                                <td>{{ "{:,.0f}".format(item.doUlsPlus) }}</td>
+                                                <td>{{ "{:,.0f}".format(item.geGePlus) }}</td>
+                                                <td>{{ "{:,.0f}".format(item.gpPlus) }}</td>
+                                                <td>{{ "{:,.0f}".format(item.gpUltra100) }}</td>
+                                                <td><strong>{{ "{:,.0f}".format(item.volumenTotal) }}</strong></td>
+                                                <td>
+                                                    <span class="badge bg-{{ item.estadoVolumen.color }} badge-volume">
+                                                        <span class="volume-indicator {{ item.estadoVolumen.class }}"></span>
+                                                        {{ item.estadoVolumen.text }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ item.funcionario }}</td>
+                                                <td>
+                                                    <small class="text-muted">{{ item.fechaHora }}</small>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Gestión de Usuarios -->
+                    <div class="tab-pane fade" id="tab-usuarios">
+                        <div class="row">
+                            <div class="col-lg-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-info text-white">
+                                        <i class="fas fa-user-plus me-2"></i> Crear Usuario Individual
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="crearUsuarioForm">
+                                            <div class="mb-3">
+                                                <label for="funcionario" class="form-label">Nombre del Funcionario</label>
+                                                <input type="text" class="form-control" id="funcionario" 
+                                                       placeholder="Ej: Juan Pérez" required>
+                                                <div class="form-text">
+                                                    El usuario se creará automáticamente con la primera palabra + "1234"
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-user-plus me-2"></i>Crear Usuario
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-users me-2"></i> Usuarios Existentes</span>
+                                        <span class="badge bg-light text-dark">{{ usuarios|length }} usuarios</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Usuario</th>
+                                                        <th>Funcionario</th>
+                                                        <th>Rol</th>
+                                                        <th>Fecha Creación</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for usuario in usuarios %}
+                                                    <tr>
+                                                        <td><strong>{{ usuario.username }}</strong></td>
+                                                        <td>{{ usuario.funcionario }}</td>
+                                                        <td>
+                                                            <span class="badge bg-{{ 'danger' if usuario.rol == 'admin' else 'primary' }}">
+                                                                {{ usuario.rol }}
+                                                            </span>
+                                                        </td>
+                                                        <td>{{ usuario.fecha_creacion.strftime('%Y-%m-%d') if usuario.fecha_creacion else 'N/A' }}</td>
+                                                        <td>
+                                                            <div class="btn-group btn-group-sm">
+                                                                <button class="btn btn-outline-primary btn-editar-usuario" 
+                                                                        data-id="{{ usuario.id }}"
+                                                                        data-username="{{ usuario.username }}"
+                                                                        data-funcionario="{{ usuario.funcionario }}"
+                                                                        data-rol="{{ usuario.rol }}">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </button>
+                                                                {% if usuario.username != 'admin' %}
+                                                                <button class="btn btn-outline-danger btn-eliminar-usuario" 
+                                                                        data-id="{{ usuario.id }}"
+                                                                        data-username="{{ usuario.username }}">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                                {% endif %}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal para Editar Usuario -->
+                        <div class="modal fade" id="modalEditarUsuario" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Editar Usuario</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form id="formEditarUsuario">
+                                            <input type="hidden" id="editarUsuarioId">
+                                            <div class="mb-3">
+                                                <label for="editarUsuarioUsername" class="form-label">Usuario</label>
+                                                <input type="text" class="form-control" id="editarUsuarioUsername" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="editarUsuarioFuncionario" class="form-label">Funcionario</label>
+                                                <input type="text" class="form-control" id="editarUsuarioFuncionario" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="editarUsuarioRol" class="form-label">Rol</label>
+                                                <select class="form-select" id="editarUsuarioRol" required>
+                                                    <option value="user">Usuario</option>
+                                                    <option value="admin">Administrador</option>
+                                                </select>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="button" class="btn btn-primary" id="btnGuardarUsuario">Guardar Cambios</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <i class="fas fa-info-circle me-2"></i> Información sobre Usuarios
+                            </div>
+                            <div class="card-body">
+                                <h5>Proceso de creación de usuarios:</h5>
+                                <ul>
+                                    <li><strong>Creación individual:</strong> Use el formulario superior para crear usuarios uno por uno</li>
+                                    <li><strong>Creación masiva:</strong> Al cargar un archivo CSV con la columna FUNCIONARIO, los usuarios se crean automáticamente</li>
+                                    <li><strong>Credenciales:</strong> Usuario = primera palabra del funcionario (minúsculas), Contraseña = usuario + "1234"</li>
+                                    <li><strong>Ejemplo:</strong> Funcionario "Juan Pérez" → Usuario: "juan", Contraseña: "juan1234"</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Carga -->
+                    <div class="tab-pane fade" id="tab-carga">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <i class="fas fa-file-upload me-2"></i> Cargar Archivo de Datos
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="alert alert-info">
+                                            <h5><i class="fas fa-info-circle me-2"></i>Nueva Característica</h5>
+                                            <p class="mb-0">El sistema ahora <strong>crea automáticamente la columna "FECHA Y HORA DE ACTUALIZACION"</strong> si no existe en el CSV. Los usuarios podrán ver esta información en el apartado "Datos".</p>
+                                        </div>
+                                        
+                                        <div class="file-upload-area" id="dropArea">
+                                            <i class="fas fa-file-excel fa-3x text-primary mb-3"></i>
+                                            <h4>Arrastra tu archivo CSV aquí</h4>
+                                            <p class="text-muted">o haz clic para seleccionar</p>
+                                            <input type="file" id="fileInput" accept=".csv" hidden>
+                                            <button class="btn btn-primary mt-3" id="selectFileBtn">
+                                                <i class="fas fa-folder-open me-2"></i>Seleccionar Archivo
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="mt-4" id="fileInfo" style="display: none;">
+                                            <div class="alert alert-info">
+                                                <h5><i class="fas fa-info-circle me-2"></i>Archivo Seleccionado</h5>
+                                                <div id="fileDetails"></div>
+                                                <button class="btn btn-success mt-3" id="processFileBtn">
+                                                    <i class="fas fa-play me-2"></i>Procesar Archivo
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4">
+                                            <h5><i class="fas fa-list-alt me-2"></i>Estructura Esperada del CSV</h5>
+                                            <p>El archivo debe contener estas columnas exactamente:</p>
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered table-sm">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Columna</th>
+                                                            <th>Descripción</th>
+                                                            <th>Tipo</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr><td>CODIGO</td><td>Código único</td><td>Texto</td></tr>
+                                                        <tr><td>RAZON SOCIAL ANH</td><td>Nombre estación</td><td>Texto</td></tr>
+                                                        <tr><td>ZONA</td><td>Zona geográfica</td><td>Texto</td></tr>
+                                                        <tr><td>PROVINCIA</td><td>Provincia</td><td>Texto</td></tr>
+                                                        <tr><td>MUNICIPIO</td><td>Municipio</td><td>Texto</td></tr>
+                                                        <tr><td>DO/DO+ (LTS)</td><td>Volumen DO/DO+</td><td>Número</td></tr>
+                                                        <tr><td>DO ULS+ (LTS)</td><td>Volumen DO ULS+</td><td>Número</td></tr>
+                                                        <tr><td>GE/GE+ (LTS)</td><td>Volumen GE/GE+</td><td>Número</td></tr>
+                                                        <tr><td>GP+ (LTS)</td><td>Volumen GP+</td><td>Número</td></tr>
+                                                        <tr><td>GPULTRA100 (LTS)</td><td>Volumen GP ULTRA 100</td><td>Número</td></tr>
+                                                        <tr><td>FUNCIONARIO</td><td>Nombre funcionario</td><td>Texto</td></tr>
+                                                        <tr><td>FILAS DO/DO+</td><td>Filas DO/DO+</td><td>Número</td></tr>
+                                                        <tr><td>FILAS GE/GE+</td><td>Filas GE/GE+</td><td>Número</td></tr>
+                                                        <tr class="table-success"><td>FECHA Y HORA DE ACTUALIZACION</td><td><strong>NUEVO:</strong> Se crea automáticamente si no existe</td><td>Fecha/Hora</td></tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Datos para los gráficos
+        const fuelData = {{ fuel_data | tojson }};
+        const topEstaciones = {{ stats.top_estaciones | tojson }};
+        const volumenPorProducto = {{ stats.volumen_por_producto | tojson }};
+        const volumenPorGrupo = {{ stats.volumen_por_grupo | tojson }};
+        const topEstacionesGrupo = {{ stats.top_estaciones_grupo | tojson }};
+        const evolucionTemporal = {{ stats.evolucion_temporal | tojson }};
+        
+        console.log('Datos de evolución temporal:', evolucionTemporal);
+        
+        // Inicializar gráficos y funcionalidades
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            initializeFileUpload();
+            initializeFilters();
+            initializeUserManagement();
+            initializeDateFilter();
+            initializeTabDatosDateFilter();
+            initializeMobileMenu();
+        });
+
+        // Mobile Menu Functionality
+        function initializeMobileMenu() {
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            
+            if (mobileMenuBtn && sidebar) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('mobile-open');
+                    overlay.classList.toggle('active');
+                });
+                
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('mobile-open');
+                    overlay.classList.remove('active');
+                });
+                
+                // Close menu when clicking on a link
+                document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                    link.addEventListener('click', function() {
+                        sidebar.classList.remove('mobile-open');
+                        overlay.classList.remove('active');
+                    });
+                });
+            }
+        }
+
+        function initializeCharts() {
+            // Gráfico de Top 15 Estaciones (Barras Horizontales)
+            const topStationsCtx = document.getElementById('topStationsChart').getContext('2d');
+            let topStationsChart = new Chart(topStationsCtx, {
+                type: 'bar',
+                data: {
+                    labels: topEstaciones.total.slice(0, 15).map(item => item.nombre),
+                    datasets: [{
+                        label: 'Volumen Total (Litros)',
+                        data: topEstaciones.total.slice(0, 15).map(item => item.volumen),
+                        backgroundColor: '#1a2a6c',
+                        borderColor: '#0d1a4d',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Litros'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 0,
+                                minRotation: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Volumen: ${context.parsed.x.toLocaleString()} litros`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Verificar que hay datos para el gráfico temporal
+            if (!evolucionTemporal || evolucionTemporal.length === 0) {
+                console.error('No hay datos de evolución temporal');
+                return;
+            }
+
+            // Gráfico de Evolución por Producto (Líneas) - CON FECHA/HORA
+            const evolucionProductoCtx = document.getElementById('evolucionProductoChart').getContext('2d');
+            let evolucionProductoChart = new Chart(evolucionProductoCtx, {
+                type: 'line',
+                data: {
+                    labels: evolucionTemporal.map(item => item.fecha_hora),
+                    datasets: [
+                        {
+                            label: 'DOS (Diesel)',
+                            data: evolucionTemporal.map(item => item.dos || 0),
+                            borderColor: '#1a2a6c',
+                            backgroundColor: 'rgba(26, 42, 108, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#1a2a6c',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5
+                        },
+                        {
+                            label: 'GES (Gasolinas)',
+                            data: evolucionTemporal.map(item => item.ges || 0),
+                            borderColor: '#b21f1f',
+                            backgroundColor: 'rgba(178, 31, 31, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#b21f1f',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'VOLUMEN (Litros)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' L';
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'FECHA/HORA'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.y.toLocaleString()} litros`;
+                                },
+                                afterLabel: function(context) {
+                                    const fecha = context.label;
+                                    return `Fecha: ${fecha}`;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+
+            // Event listeners para cambiar productos dinámicamente
+            document.querySelectorAll('[data-producto]').forEach(button => {
+                button.addEventListener('click', function() {
+                    const producto = this.getAttribute('data-producto');
+                    
+                    // Remover clase active de todos los botones del mismo grupo
+                    this.parentElement.querySelectorAll('.btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // Actualizar gráfico según el producto seleccionado
+                    if (this.closest('.card-header').querySelector('span').textContent.includes('Top 15')) {
+                        // Gráfico de Top 15
+                        let data, label;
+                        
+                        switch(producto) {
+                            case 'total':
+                                data = topEstaciones.total.slice(0, 15);
+                                label = 'Volumen Total';
+                                break;
+                            case 'dos':
+                                data = topEstacionesGrupo.dos.slice(0, 15);
+                                label = 'DOS (Diesel)';
+                                break;
+                            case 'ges':
+                                data = topEstacionesGrupo.ges.slice(0, 15);
+                                label = 'GES (Gasolinas)';
+                                break;
+                        }
+                        
+                        topStationsChart.data.labels = data.map(item => item.nombre);
+                        topStationsChart.data.datasets[0].data = data.map(item => item.volumen);
+                        topStationsChart.data.datasets[0].label = label + ' (Litros)';
+                        topStationsChart.update();
+                        
+                    } else {
+                        // Gráfico de Evolución por Producto - TOGGLE LÍNEAS
+                        const datasetIndex = producto === 'dos' ? 0 : 1;
+                        const isHidden = evolucionProductoChart.isDatasetVisible(datasetIndex);
+                        
+                        if (isHidden) {
+                            evolucionProductoChart.show(datasetIndex);
+                            this.classList.add('active');
+                        } else {
+                            evolucionProductoChart.hide(datasetIndex);
+                            this.classList.remove('active');
+                        }
+                    }
+                });
+            });
+        }
+
+        function initializeFileUpload() {
+            document.getElementById('selectFileBtn').addEventListener('click', function() {
+                document.getElementById('fileInput').click();
+            });
+
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    document.getElementById('fileDetails').innerHTML = `
+                        <p><strong>Nombre:</strong> ${file.name}</p>
+                        <p><strong>Tamaño:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                    `;
+                    document.getElementById('fileInfo').style.display = 'block';
+                }
+            });
+
+            document.getElementById('processFileBtn').addEventListener('click', function() {
+                const fileInput = document.getElementById('fileInput');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    alert('Por favor selecciona un archivo primero');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/admin/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Error al procesar el archivo: ' + error);
+                });
+            });
+        }
+
+        function initializeFilters() {
+            // Filtro de búsqueda
+            document.getElementById('searchInput').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#tab-datos tbody tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
+                });
+            });
+
+            // Filtro por zona
+            document.getElementById('zonaFilter').addEventListener('change', function() {
+                applyAllFilters();
+            });
+
+            // Filtro por estado
+            document.getElementById('estadoFilter').addEventListener('change', function() {
+                applyAllFilters();
+            });
+
+            // Filtro por producto
+            document.getElementById('productoFilter').addEventListener('change', function() {
+                applyAllFilters();
+            });
+        }
+
+        function applyAllFilters() {
+            const zona = document.getElementById('zonaFilter').value;
+            const estado = document.getElementById('estadoFilter').value;
+            const producto = document.getElementById('productoFilter').value;
+            const rows = document.querySelectorAll('#tab-datos tbody tr');
+            
+            rows.forEach(row => {
+                const zonaCell = row.cells[2].textContent;
+                const estadoCell = row.cells[11].textContent.trim();
+                let showRow = true;
+                
+                // Filtro por zona
+                if (zona && zonaCell !== zona) {
+                    showRow = false;
+                }
+                
+                // Filtro por estado
+                if (estado && estadoCell !== estado) {
+                    showRow = false;
+                }
+                
+                // Filtro por producto
+                if (producto && showRow) {
+                    let productoValue = 0;
+                    switch(producto) {
+                        case 'DO/DO+': productoValue = parseInt(row.cells[5].textContent.replace(/,/g, '')) || 0; break;
+                        case 'DO ULS+': productoValue = parseInt(row.cells[6].textContent.replace(/,/g, '')) || 0; break;
+                        case 'GE/GE+': productoValue = parseInt(row.cells[7].textContent.replace(/,/g, '')) || 0; break;
+                        case 'GP+': productoValue = parseInt(row.cells[8].textContent.replace(/,/g, '')) || 0; break;
+                        case 'GP ULTRA 100': productoValue = parseInt(row.cells[9].textContent.replace(/,/g, '')) || 0; break;
+                    }
+                    if (productoValue <= 0) {
+                        showRow = false;
+                    }
+                }
+                
+                row.style.display = showRow ? '' : 'none';
+            });
+        }
+
+        function initializeUserManagement() {
+            // Gestión de usuarios - Editar y Eliminar
+            document.querySelectorAll('.btn-editar-usuario').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const username = this.getAttribute('data-username');
+                    const funcionario = this.getAttribute('data-funcionario');
+                    const rol = this.getAttribute('data-rol');
+                    
+                    document.getElementById('editarUsuarioId').value = id;
+                    document.getElementById('editarUsuarioUsername').value = username;
+                    document.getElementById('editarUsuarioFuncionario').value = funcionario;
+                    document.getElementById('editarUsuarioRol').value = rol;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('modalEditarUsuario'));
+                    modal.show();
+                });
+            });
+            
+            // Guardar cambios de usuario
+            document.getElementById('btnGuardarUsuario').addEventListener('click', function() {
+                const id = document.getElementById('editarUsuarioId').value;
+                const username = document.getElementById('editarUsuarioUsername').value;
+                const funcionario = document.getElementById('editarUsuarioFuncionario').value;
+                const rol = document.getElementById('editarUsuarioRol').value;
+                
+                if (!username || !funcionario) {
+                    alert('Por favor complete todos los campos');
+                    return;
+                }
+                
+                fetch('/admin/editar_usuario', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id,
+                        username: username,
+                        funcionario: funcionario,
+                        rol: rol
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ ' + data.message);
+                        location.reload();
+                    } else {
+                        alert('❌ ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('❌ Error al editar usuario: ' + error);
+                });
+            });
+            
+            // Eliminar Usuario
+            document.querySelectorAll('.btn-eliminar-usuario').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const username = this.getAttribute('data-username');
+                    
+                    if (confirm(`¿Está seguro de eliminar al usuario "${username}"? Esta acción no se puede deshacer.`)) {
+                        fetch('/admin/eliminar_usuario', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ id: id })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('✅ ' + data.message);
+                                location.reload();
+                            } else {
+                                alert('❌ ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            alert('❌ Error al eliminar usuario: ' + error);
+                        });
+                    }
+                });
+            });
+        }
+
+        function initializeDateFilter() {
+            // Filtro de fechas y horas para Dashboard
+            const dateFilterForm = document.getElementById('dateFilterForm');
+            if (dateFilterForm) {
+                dateFilterForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const fechaInicio = document.getElementById('fecha_inicio').value;
+                    const fechaFin = document.getElementById('fecha_fin').value;
+                    const horaInicio = document.getElementById('hora_inicio').value;
+                    const horaFin = document.getElementById('hora_fin').value;
+                    
+                    // Validar que las fechas no estén vacías
+                    if (!fechaInicio || !fechaFin) {
+                        alert('Por favor seleccione ambas fechas');
+                        return;
+                    }
+                    
+                    // Validar que fecha inicio no sea mayor a fecha fin
+                    if (fechaInicio > fechaFin) {
+                        alert('La fecha de inicio no puede ser mayor a la fecha fin');
+                        return;
+                    }
+                    
+                    // Construir URL con parámetros de fecha y hora
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('fecha_inicio', fechaInicio);
+                    url.searchParams.set('fecha_fin', fechaFin);
+                    if (horaInicio) url.searchParams.set('hora_inicio', horaInicio);
+                    if (horaFin) url.searchParams.set('hora_fin', horaFin);
+                    
+                    // Redirigir a la misma página con los nuevos parámetros
+                    window.location.href = url.toString();
+                });
+            }
+            
+            // Establecer valores por defecto
+            const fechaFinInput = document.getElementById('fecha_fin');
+            if (fechaFinInput && !fechaFinInput.value) {
+                const today = new Date().toISOString().split('T')[0];
+                fechaFinInput.value = today;
+            }
+            
+            const fechaInicioInput = document.getElementById('fecha_inicio');
+            if (fechaInicioInput && !fechaInicioInput.value) {
+                const oneWeekAgo = new Date();
+                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+                fechaInicioInput.value = oneWeekAgo.toISOString().split('T')[0];
+            }
+            
+            // Establecer horas por defecto si están vacías
+            const horaInicioInput = document.getElementById('hora_inicio');
+            if (horaInicioInput && !horaInicioInput.value) {
+                horaInicioInput.value = '00:00';
+            }
+            
+            const horaFinInput = document.getElementById('hora_fin');
+            if (horaFinInput && !horaFinInput.value) {
+                horaFinInput.value = '23:59';
+            }
+        }
+
+        function initializeTabDatosDateFilter() {
+            // Filtro de fechas y horas para Tab Datos
+            const tabDatosDateFilterForm = document.getElementById('tabDatosDateFilterForm');
+            if (tabDatosDateFilterForm) {
+                tabDatosDateFilterForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const fechaInicio = document.getElementById('tab_datos_fecha_inicio').value;
+                    const fechaFin = document.getElementById('tab_datos_fecha_fin').value;
+                    const horaInicio = document.getElementById('tab_datos_hora_inicio').value;
+                    const horaFin = document.getElementById('tab_datos_hora_fin').value;
+                    
+                    // Validar que las fechas no estén vacías
+                    if (!fechaInicio || !fechaFin) {
+                        alert('Por favor seleccione ambas fechas');
+                        return;
+                    }
+                    
+                    // Validar que fecha inicio no sea mayor a fecha fin
+                    if (fechaInicio > fechaFin) {
+                        alert('La fecha de inicio no puede ser mayor a la fecha fin');
+                        return;
+                    }
+                    
+                    // Construir URL con parámetros de fecha y hora
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('fecha_inicio', fechaInicio);
+                    url.searchParams.set('fecha_fin', fechaFin);
+                    if (horaInicio) url.searchParams.set('hora_inicio', horaInicio);
+                    if (horaFin) url.searchParams.set('hora_fin', horaFin);
+                    
+                    // Agregar hash para mantener la pestaña activa
+                    url.hash = 'tab-datos';
+                    
+                    // Redirigir a la misma página con los nuevos parámetros
+                    window.location.href = url.toString();
+                });
+            }
+            
+            // Establecer valores por defecto para el filtro de datos
+            const tabDatosFechaFinInput = document.getElementById('tab_datos_fecha_fin');
+            if (tabDatosFechaFinInput && !tabDatosFechaFinInput.value) {
+                const today = new Date().toISOString().split('T')[0];
+                tabDatosFechaFinInput.value = today;
+            }
+            
+            const tabDatosFechaInicioInput = document.getElementById('tab_datos_fecha_inicio');
+            if (tabDatosFechaInicioInput && !tabDatosFechaInicioInput.value) {
+                const oneWeekAgo = new Date();
+                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+                tabDatosFechaInicioInput.value = oneWeekAgo.toISOString().split('T')[0];
+            }
+            
+            // Establecer horas por defecto para el filtro de datos
+            const tabDatosHoraInicioInput = document.getElementById('tab_datos_hora_inicio');
+            if (tabDatosHoraInicioInput && !tabDatosHoraInicioInput.value) {
+                tabDatosHoraInicioInput.value = '00:00';
+            }
+            
+            const tabDatosHoraFinInput = document.getElementById('tab_datos_hora_fin');
+            if (tabDatosHoraFinInput && !tabDatosHoraFinInput.value) {
+                tabDatosHoraFinInput.value = '23:59';
+            }
+        }
+    </script>
+</body>
+</html>

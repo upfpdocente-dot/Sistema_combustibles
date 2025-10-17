@@ -8,28 +8,6 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from io import StringIO, BytesIO
 
-
-import sys
-import subprocess
-import os
-
-# VERIFICAR Y FORZAR PYTHON 3.11
-def check_python_version():
-    version = sys.version_info
-    print(f"🔍 Python version: {version.major}.{version.minor}.{version.micro}")
-    
-    if version.major == 3 and version.minor >= 13:
-        print("❌ ERROR: Python 3.13+ no es compatible con psycopg2")
-        print("⚠️  Render está forzando una versión incompatible")
-        return False
-    return True
-
-# Ejecutar verificación al importar
-if not check_python_version():
-    print("🚨 SE DETIENE LA APLICACIÓN POR INCOMPATIBILIDAD")
-    sys.exit(1)
-
-
 # Crear la aplicación Flask primero
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'clave_secreta_sistema_combustibles_2024')
@@ -71,7 +49,12 @@ app.config['ALLOWED_EXTENSIONS'] = {'csv', 'xlsx', 'xls'}
 
 # Inicializar SQLAlchemy después de configurar la app
 db = SQLAlchemy(app)
-# El resto del código permanece igual...
+
+# Crear directorio de uploads si no existe
+try:
+    os.makedirs('uploads', exist_ok=True)
+except:
+    pass
 
 # ================= MODELOS =================
 class Usuario(db.Model):
@@ -149,11 +132,6 @@ class RegistroCombustible(db.Model):
             'usuarioActualizacion': self.usuario_actualizacion
         }
 
-# ================= RUTA PARA ARCHIVOS ESTÁTICOS =================
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory('static', filename)
-
 # ================= FUNCIONES DE UTILIDAD =================
 def allowed_file(filename):
     return '.' in filename and \
@@ -178,6 +156,31 @@ def crear_usuario_desde_funcionario(nombre_funcionario):
     else:
         print(f"⚠️ Usuario ya existe: {username}")
         return usuario_existente
+
+# ================= FUNCIONES AUXILIARES MEJORADAS =================
+def calcular_estado(total):
+    if total > 7000:
+        return {'class': 'volume-high', 'text': 'ALTO', 'color': 'success'}
+    elif total >= 3000:
+        return {'class': 'volume-medium', 'text': 'MEDIO', 'color': 'warning'}
+    else:
+        return {'class': 'volume-low', 'text': 'BAJO', 'color': 'danger'}
+
+def calcular_estadisticas():
+    # Esta función calcula estadísticas para el dashboard de usuario
+    # Por ahora retorna valores dummy - puedes implementar la lógica real después
+    return {
+        'alto_diesel': 0,
+        'medio_diesel': 0, 
+        'bajo_diesel': 0,
+        'alto_gasolina': 0,
+        'medio_gasolina': 0,
+        'bajo_gasolina': 0
+    }
+
+# Hacer funciones disponibles en templates
+app.jinja_env.globals.update(calcular_estado=calcular_estado)
+app.jinja_env.globals.update(calcular_estadisticas=calcular_estadisticas)
 
 def obtener_ultimos_registros(fecha_inicio=None, fecha_fin=None, hora_inicio=None, hora_fin=None):
     subquery = db.session.query(
@@ -211,7 +214,7 @@ def obtener_ultimos_registros(fecha_inicio=None, fecha_fin=None, hora_inicio=Non
     
     return registros
 
-def calcular_estadisticas(registros, fecha_inicio=None, fecha_fin=None):
+def calcular_estadisticas_globales(registros, fecha_inicio=None, fecha_fin=None):
     if not registros:
         return {
             'total_estaciones': 0,
@@ -303,62 +306,6 @@ def calcular_estadisticas(registros, fecha_inicio=None, fecha_fin=None):
         }
     }
 
-def init_database():
-    with app.app_context():
-        try:
-            print("🔄 Inicializando base de datos...")
-            db.create_all()
-            print("✅ Tablas creadas")
-            
-            admin_existente = Usuario.query.filter_by(username='admin').first()
-            
-            if not admin_existente:
-                print("👤 Creando usuario admin...")
-                admin = Usuario(
-                    username='admin',
-                    funcionario='Administrador', 
-                    rol='admin'
-                )
-                admin.set_password('admin123')
-                db.session.add(admin)
-                db.session.commit()
-                print("✅ Usuario admin creado exitosamente")
-            else:
-                print("✅ Usuario admin ya existe")
-                
-        except Exception as e:
-            print(f"❌ Error al inicializar base de datos: {e}")
-            # En producción, no recreamos forzadamente
-            print("⚠️ Continuando sin recrear base de datos forzadamente")
-
-
-# ================= FUNCIONES AUXILIARES MEJORADAS =================
-def calcular_estado(total):
-    if total > 7000:
-        return {'class': 'volume-high', 'text': 'ALTO', 'color': 'success'}
-    elif total >= 3000:
-        return {'class': 'volume-medium', 'text': 'MEDIO', 'color': 'warning'}
-    else:
-        return {'class': 'volume-low', 'text': 'BAJO', 'color': 'danger'}
-
-def calcular_estadisticas():
-    # Esta función calcula estadísticas para el dashboard de usuario
-    # Por ahora retorna valores dummy - puedes implementar la lógica real después
-    return {
-        'alto_diesel': 0,
-        'medio_diesel': 0, 
-        'bajo_diesel': 0,
-        'alto_gasolina': 0,
-        'medio_gasolina': 0,
-        'bajo_gasolina': 0
-    }
-
-# Hacer funciones disponibles en templates
-app.jinja_env.globals.update(calcular_estado=calcular_estado)
-app.jinja_env.globals.update(calcular_estadisticas=calcular_estadisticas)
-
-
-
 # ================= RUTAS PRINCIPALES =================
 @app.route('/')
 def index():
@@ -429,7 +376,7 @@ def admin_dashboard():
         registros = obtener_ultimos_registros(fecha_inicio, fecha_fin, hora_inicio_str, hora_fin_str)
         fuel_data = [registro.to_dict() for registro in registros]
         
-        stats = calcular_estadisticas(registros, fecha_inicio, fecha_fin)
+        stats = calcular_estadisticas_globales(registros, fecha_inicio, fecha_fin)
         
         usuarios = Usuario.query.all()
         
@@ -580,58 +527,7 @@ def eliminar_usuario():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error al eliminar usuario: {str(e)}'}), 500
 
-
-
-
-# ================= RUTAS DE ACTUALIZACIÓN DE DATOS =================
-@app.route('/user/actualizar_estacion', methods=['POST'])
-def actualizar_estacion():
-    if 'user' not in session:
-        return jsonify({'success': False, 'message': 'Debe iniciar sesión'}), 403
-    
-    try:
-        data = request.get_json()
-        codigo = data.get('codigo')
-        
-        registro_anterior = RegistroCombustible.query.filter_by(codigo=codigo).order_by(RegistroCombustible.fecha_hora.desc()).first()
-        
-        if registro_anterior and registro_anterior.funcionario != session.get('funcionario'):
-            return jsonify({'success': False, 'message': 'No tiene permisos para esta estación'}), 403
-        
-        nuevo_registro = RegistroCombustible(
-            codigo=codigo,
-            razon_social=registro_anterior.razon_social if registro_anterior else data.get('razon_social', ''),
-            zona=registro_anterior.zona if registro_anterior else data.get('zona', ''),
-            provincia=registro_anterior.provincia if registro_anterior else data.get('provincia', ''),
-            municipio=registro_anterior.municipio if registro_anterior else data.get('municipio', ''),
-            do_do_plus=int(data.get('do_do_plus', 0)),
-            do_uls_plus=int(data.get('do_uls_plus', 0)),
-            ge_ge_plus=int(data.get('ge_ge_plus', 0)),
-            gp_plus=int(data.get('gp_plus', 0)),
-            gp_ultra_100=int(data.get('gp_ultra_100', 0)),
-            funcionario=session.get('funcionario'),
-            filas_do_do_plus=int(data.get('filas_do_do_plus', 0)),
-            filas_ge_ge_plus=int(data.get('filas_ge_ge_plus', 0)),
-            fecha_hora=datetime.utcnow(),
-            usuario_actualizacion=session.get('user'),
-            tipo_registro='actualizacion'
-        )
-        
-        db.session.add(nuevo_registro)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True, 
-            'message': 'Datos actualizados correctamente'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Error al actualizar: {str(e)}'}), 500
-
-
-
-# ================= RUTAS DE ACTUALIZACIÓN DE DATOS =================
+# ================= RUTA CORREGIDA PARA ACTUALIZAR ESTACIONES =================
 @app.route('/user/actualizar_estacion', methods=['POST'])
 def actualizar_estacion():
     if 'user' not in session:
@@ -682,6 +578,7 @@ def actualizar_estacion():
         db.session.rollback()
         print(f"❌ Error en actualizar_estacion: {str(e)}")
         return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
 # ================= CARGA Y EXPORTACIÓN DE ARCHIVOS =================
 @app.route('/admin/upload', methods=['POST'])
 def upload_file():

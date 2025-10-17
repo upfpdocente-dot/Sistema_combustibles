@@ -331,6 +331,34 @@ def init_database():
             # En producción, no recreamos forzadamente
             print("⚠️ Continuando sin recrear base de datos forzadamente")
 
+
+# ================= FUNCIONES AUXILIARES MEJORADAS =================
+def calcular_estado(total):
+    if total > 7000:
+        return {'class': 'volume-high', 'text': 'ALTO', 'color': 'success'}
+    elif total >= 3000:
+        return {'class': 'volume-medium', 'text': 'MEDIO', 'color': 'warning'}
+    else:
+        return {'class': 'volume-low', 'text': 'BAJO', 'color': 'danger'}
+
+def calcular_estadisticas():
+    # Esta función calcula estadísticas para el dashboard de usuario
+    # Por ahora retorna valores dummy - puedes implementar la lógica real después
+    return {
+        'alto_diesel': 0,
+        'medio_diesel': 0, 
+        'bajo_diesel': 0,
+        'alto_gasolina': 0,
+        'medio_gasolina': 0,
+        'bajo_gasolina': 0
+    }
+
+# Hacer funciones disponibles en templates
+app.jinja_env.globals.update(calcular_estado=calcular_estado)
+app.jinja_env.globals.update(calcular_estadisticas=calcular_estadisticas)
+
+
+
 # ================= RUTAS PRINCIPALES =================
 @app.route('/')
 def index():
@@ -476,6 +504,85 @@ def crear_usuario():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error al crear usuario: {str(e)}'}), 500
 
+# ================= RUTAS MEJORADAS PARA GESTIÓN DE USUARIOS =================
+@app.route('/admin/editar_usuario', methods=['POST'])
+def editar_usuario():
+    if 'user' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Acceso denegado'}), 403
+    
+    try:
+        data = request.get_json()
+        usuario_id = data.get('id')
+        username = data.get('username')
+        funcionario = data.get('funcionario')
+        rol = data.get('rol')
+        
+        if not usuario_id or not username or not funcionario:
+            return jsonify({'success': False, 'message': 'Datos incompletos'}), 400
+        
+        usuario = Usuario.query.get(usuario_id)
+        if not usuario:
+            return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
+        
+        # Verificar si el username ya existe (excluyendo el usuario actual)
+        usuario_existente = Usuario.query.filter(
+            Usuario.username == username, 
+            Usuario.id != usuario_id
+        ).first()
+        
+        if usuario_existente:
+            return jsonify({'success': False, 'message': 'El nombre de usuario ya existe'}), 400
+        
+        usuario.username = username
+        usuario.funcionario = funcionario
+        usuario.rol = rol
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Usuario actualizado correctamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error al editar usuario: {str(e)}'}), 500
+
+@app.route('/admin/eliminar_usuario', methods=['POST'])
+def eliminar_usuario():
+    if 'user' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Acceso denegado'}), 403
+    
+    try:
+        data = request.get_json()
+        usuario_id = data.get('id')
+        
+        if not usuario_id:
+            return jsonify({'success': False, 'message': 'ID de usuario requerido'}), 400
+        
+        usuario = Usuario.query.get(usuario_id)
+        if not usuario:
+            return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
+        
+        # No permitir eliminar al usuario admin principal
+        if usuario.username == 'admin':
+            return jsonify({'success': False, 'message': 'No se puede eliminar el usuario admin principal'}), 400
+        
+        db.session.delete(usuario)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Usuario eliminado correctamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error al eliminar usuario: {str(e)}'}), 500
+
+
+
+
 # ================= RUTAS DE ACTUALIZACIÓN DE DATOS =================
 @app.route('/user/actualizar_estacion', methods=['POST'])
 def actualizar_estacion():
@@ -522,6 +629,59 @@ def actualizar_estacion():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error al actualizar: {str(e)}'}), 500
 
+
+
+# ================= RUTAS DE ACTUALIZACIÓN DE DATOS =================
+@app.route('/user/actualizar_estacion', methods=['POST'])
+def actualizar_estacion():
+    if 'user' not in session:
+        return jsonify({'success': False, 'message': 'Debe iniciar sesión'}), 403
+    
+    try:
+        data = request.get_json()
+        codigo = data.get('codigo')
+        
+        if not codigo:
+            return jsonify({'success': False, 'message': 'Código de estación requerido'}), 400
+        
+        # Buscar si existe un registro anterior para esta estación
+        registro_anterior = RegistroCombustible.query.filter_by(
+            codigo=codigo, 
+            funcionario=session.get('funcionario')
+        ).order_by(RegistroCombustible.fecha_hora.desc()).first()
+        
+        # Crear NUEVO registro (siempre crear nuevo, no actualizar existente)
+        nuevo_registro = RegistroCombustible(
+            codigo=codigo,
+            razon_social=data.get('razon_social', registro_anterior.razon_social if registro_anterior else ''),
+            zona=data.get('zona', registro_anterior.zona if registro_anterior else ''),
+            provincia=data.get('provincia', registro_anterior.provincia if registro_anterior else ''),
+            municipio=data.get('municipio', registro_anterior.municipio if registro_anterior else ''),
+            do_do_plus=int(data.get('do_do_plus', 0)),
+            do_uls_plus=int(data.get('do_uls_plus', 0)),
+            ge_ge_plus=int(data.get('ge_ge_plus', 0)),
+            gp_plus=int(data.get('gp_plus', 0)),
+            gp_ultra_100=int(data.get('gp_ultra_100', 0)),
+            funcionario=session.get('funcionario'),
+            filas_do_do_plus=int(data.get('filas_do_do_plus', 0)),
+            filas_ge_ge_plus=int(data.get('filas_ge_ge_plus', 0)),
+            fecha_hora=datetime.utcnow(),
+            usuario_actualizacion=session.get('user'),
+            tipo_registro='actualizacion'
+        )
+        
+        db.session.add(nuevo_registro)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Datos guardados correctamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error en actualizar_estacion: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
 # ================= CARGA Y EXPORTACIÓN DE ARCHIVOS =================
 @app.route('/admin/upload', methods=['POST'])
 def upload_file():

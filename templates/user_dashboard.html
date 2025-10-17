@@ -36,14 +36,20 @@
             color: white;
             border: none;
             padding: 12px 15px;
+            font-size: 0.85rem;
+        }
+        
+        .table td {
+            font-size: 0.8rem;
+            padding: 8px 10px;
         }
         
         .volume-indicator {
             display: inline-block;
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            margin-right: 8px;
+            margin-right: 5px;
         }
         
         .volume-high { background-color: var(--success); }
@@ -66,8 +72,43 @@
         }
         
         .last-update {
-            font-size: 0.8em;
+            font-size: 0.7em;
             color: #6c757d;
+        }
+        
+        .total-cell {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .table-responsive {
+                font-size: 0.7rem;
+            }
+            
+            .btn-sm {
+                padding: 0.1rem 0.3rem;
+                font-size: 0.7rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .table th, .table td {
+                padding: 6px 8px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
         }
     </style>
 </head>
@@ -102,8 +143,8 @@
             <div class="col-md-3">
                 <div class="card text-white bg-success">
                     <div class="card-body text-center">
-                        <h4 class="card-title">{{ fuel_data|selectattr('estadoVolumen.text', 'equalto', 'ALTO')|list|length }}</h4>
-                        <p class="card-text">Estaciones ALTO</p>
+                        <h4 class="card-title">{{ calcular_estadisticas().alto_diesel }}</h4>
+                        <p class="card-text">Diesel ALTO</p>
                         <i class="fas fa-chart-line fa-2x opacity-50"></i>
                     </div>
                 </div>
@@ -111,8 +152,8 @@
             <div class="col-md-3">
                 <div class="card text-white bg-warning">
                     <div class="card-body text-center">
-                        <h4 class="card-title">{{ fuel_data|selectattr('estadoVolumen.text', 'equalto', 'MEDIO')|list|length }}</h4>
-                        <p class="card-text">Estaciones MEDIO</p>
+                        <h4 class="card-title">{{ calcular_estadisticas().medio_diesel }}</h4>
+                        <p class="card-text">Diesel MEDIO</p>
                         <i class="fas fa-chart-bar fa-2x opacity-50"></i>
                     </div>
                 </div>
@@ -120,15 +161,15 @@
             <div class="col-md-3">
                 <div class="card text-white bg-danger">
                     <div class="card-body text-center">
-                        <h4 class="card-title">{{ fuel_data|selectattr('estadoVolumen.text', 'equalto', 'BAJO')|list|length }}</h4>
-                        <p class="card-text">Estaciones BAJO</p>
+                        <h4 class="card-title">{{ calcular_estadisticas().bajo_diesel }}</h4>
+                        <p class="card-text">Diesel BAJO</p>
                         <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tabla de Estaciones Asignadas -->
+        <!-- Tabla de Estaciones Asignadas MEJORADA -->
         <div class="card">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <span><i class="fas fa-table me-2"></i> Mis Estaciones Asignadas</span>
@@ -152,8 +193,10 @@
                                 <th>GP ULTRA 100</th>
                                 <th>FILAS DO/DO+</th>
                                 <th>FILAS GE/GE+</th>
-                                <th>TOTAL</th>
-                                <th>ESTADO</th>
+                                <th>TOTAL DIESEL</th>
+                                <th>ESTADO DIESEL</th>
+                                <th>TOTAL GASOLINA</th>
+                                <th>ESTADO GASOLINA</th>
                                 <th>ÚLTIMA ACTUALIZACIÓN</th>
                                 <th>ACCIONES</th>
                             </tr>
@@ -167,31 +210,31 @@
                                 <td>{{ item.provincia }}</td>
                                 <td>{{ item.municipio }}</td>
                                 <td>
-                                    <input type="number" class="form-control form-control-sm" 
+                                    <input type="number" class="form-control form-control-sm volumen-input" 
                                            value="{{ item.doDoPlus }}" 
                                            data-field="do_do_plus"
                                            data-codigo="{{ item.codigo }}">
                                 </td>
                                 <td>
-                                    <input type="number" class="form-control form-control-sm" 
+                                    <input type="number" class="form-control form-control-sm volumen-input" 
                                            value="{{ item.doUlsPlus }}" 
                                            data-field="do_uls_plus"
                                            data-codigo="{{ item.codigo }}">
                                 </td>
                                 <td>
-                                    <input type="number" class="form-control form-control-sm" 
+                                    <input type="number" class="form-control form-control-sm volumen-input" 
                                            value="{{ item.geGePlus }}" 
                                            data-field="ge_ge_plus"
                                            data-codigo="{{ item.codigo }}">
                                 </td>
                                 <td>
-                                    <input type="number" class="form-control form-control-sm" 
+                                    <input type="number" class="form-control form-control-sm volumen-input" 
                                            value="{{ item.gpPlus }}" 
                                            data-field="gp_plus"
                                            data-codigo="{{ item.codigo }}">
                                 </td>
                                 <td>
-                                    <input type="number" class="form-control form-control-sm" 
+                                    <input type="number" class="form-control form-control-sm volumen-input" 
                                            value="{{ item.gpUltra100 }}" 
                                            data-field="gp_ultra_100"
                                            data-codigo="{{ item.codigo }}">
@@ -208,11 +251,26 @@
                                            data-field="filas_ge_ge_plus"
                                            data-codigo="{{ item.codigo }}">
                                 </td>
-                                <td><strong>{{ "{:,.0f}".format(item.volumenTotal) }}</strong></td>
+                                <td class="total-cell">
+                                    <span class="total-diesel" id="total-diesel-{{ item.codigo }}">
+                                        {{ "{:,.0f}".format(item.doDoPlus + item.doUlsPlus) }}
+                                    </span>
+                                </td>
                                 <td>
-                                    <span class="badge bg-{{ item.estadoVolumen.color }}">
-                                        <span class="volume-indicator {{ item.estadoVolumen.class }}"></span>
-                                        {{ item.estadoVolumen.text }}
+                                    <span class="badge estado-diesel" id="estado-diesel-{{ item.codigo }}">
+                                        <span class="volume-indicator {{ calcular_estado(item.doDoPlus + item.doUlsPlus).class }}"></span>
+                                        {{ calcular_estado(item.doDoPlus + item.doUlsPlus).text }}
+                                    </span>
+                                </td>
+                                <td class="total-cell">
+                                    <span class="total-gasolina" id="total-gasolina-{{ item.codigo }}">
+                                        {{ "{:,.0f}".format(item.geGePlus + item.gpPlus + item.gpUltra100) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge estado-gasolina" id="estado-gasolina-{{ item.codigo }}">
+                                        <span class="volume-indicator {{ calcular_estado(item.geGePlus + item.gpPlus + item.gpUltra100).class }}"></span>
+                                        {{ calcular_estado(item.geGePlus + item.gpPlus + item.gpUltra100).text }}
                                     </span>
                                 </td>
                                 <td>
@@ -290,6 +348,15 @@
                         filas_ge_ge_plus: parseInt(fila.querySelector('[data-field="filas_ge_ge_plus"]').value) || 0
                     };
                     
+                    // Validar que al menos un volumen tenga valor
+                    const totalDiesel = datos.do_do_plus + datos.do_uls_plus;
+                    const totalGasolina = datos.ge_ge_plus + datos.gp_plus + datos.gp_ultra_100;
+                    
+                    if (totalDiesel === 0 && totalGasolina === 0) {
+                        alert('❌ Error: Debe ingresar al menos un volumen en diesel o gasolina');
+                        return;
+                    }
+                    
                     // Mostrar loading
                     const originalText = this.innerHTML;
                     this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
@@ -325,42 +392,50 @@
                 });
             });
             
-            // Calcular total automáticamente al cambiar valores
-			// Calcular total automáticamente al cambiar valores
-			document.querySelectorAll('input[type="number"]').forEach(input => {
-				input.addEventListener('input', function() {  // Cambiado de 'change' a 'input' para actualización en tiempo real
-					const fila = this.closest('tr');
-					const totalCell = fila.querySelector('td:nth-child(13) strong');
-					
-					// Recalcular total
-					const do_do_plus = parseInt(fila.querySelector('[data-field="do_do_plus"]').value) || 0;
-					const do_uls_plus = parseInt(fila.querySelector('[data-field="do_uls_plus"]').value) || 0;
-					const ge_ge_plus = parseInt(fila.querySelector('[data-field="ge_ge_plus"]').value) || 0;
-					const gp_plus = parseInt(fila.querySelector('[data-field="gp_plus"]').value) || 0;
-					const gp_ultra_100 = parseInt(fila.querySelector('[data-field="gp_ultra_100"]').value) || 0;
-					
-					const total = do_do_plus + do_uls_plus + ge_ge_plus + gp_plus + gp_ultra_100;
-					totalCell.textContent = total.toLocaleString();
-					
-					// Actualizar estado visualmente
-					const estadoBadge = fila.querySelector('.badge');
-					const volumeIndicator = fila.querySelector('.volume-indicator');
-					
-					if (total > 7000) {
-						estadoBadge.className = 'badge bg-success';
-						volumeIndicator.className = 'volume-indicator volume-high';
-						estadoBadge.innerHTML = '<span class="volume-indicator volume-high"></span>ALTO';
-					} else if (total >= 3000) {
-						estadoBadge.className = 'badge bg-warning';
-						volumeIndicator.className = 'volume-indicator volume-medium';
-						estadoBadge.innerHTML = '<span class="volume-indicator volume-medium"></span>MEDIO';
-					} else {
-						estadoBadge.className = 'badge bg-danger';
-						volumeIndicator.className = 'volume-indicator volume-low';
-						estadoBadge.innerHTML = '<span class="volume-indicator volume-low"></span>BAJO';
-					}
-				});
-			});
+            // Calcular totales automáticamente al cambiar valores
+            document.querySelectorAll('.volumen-input').forEach(input => {
+                input.addEventListener('input', function() {
+                    const fila = this.closest('tr');
+                    const codigo = this.getAttribute('data-codigo');
+                    
+                    // Obtener valores actuales
+                    const do_do_plus = parseInt(fila.querySelector('[data-field="do_do_plus"]').value) || 0;
+                    const do_uls_plus = parseInt(fila.querySelector('[data-field="do_uls_plus"]').value) || 0;
+                    const ge_ge_plus = parseInt(fila.querySelector('[data-field="ge_ge_plus"]').value) || 0;
+                    const gp_plus = parseInt(fila.querySelector('[data-field="gp_plus"]').value) || 0;
+                    const gp_ultra_100 = parseInt(fila.querySelector('[data-field="gp_ultra_100"]').value) || 0;
+                    
+                    // Calcular totales
+                    const totalDiesel = do_do_plus + do_uls_plus;
+                    const totalGasolina = ge_ge_plus + gp_plus + gp_ultra_100;
+                    
+                    // Actualizar totales en la tabla
+                    fila.querySelector('.total-diesel').textContent = totalDiesel.toLocaleString();
+                    fila.querySelector('.total-gasolina').textContent = totalGasolina.toLocaleString();
+                    
+                    // Actualizar estados visualmente
+                    actualizarEstado(fila.querySelector('.estado-diesel'), totalDiesel);
+                    actualizarEstado(fila.querySelector('.estado-gasolina'), totalGasolina);
+                });
+            });
+            
+            function actualizarEstado(elemento, total) {
+                const volumeIndicator = elemento.querySelector('.volume-indicator');
+                
+                if (total > 7000) {
+                    elemento.className = 'badge bg-success estado-diesel';
+                    volumeIndicator.className = 'volume-indicator volume-high';
+                    elemento.innerHTML = '<span class="volume-indicator volume-high"></span>ALTO';
+                } else if (total >= 3000) {
+                    elemento.className = 'badge bg-warning estado-diesel';
+                    volumeIndicator.className = 'volume-indicator volume-medium';
+                    elemento.innerHTML = '<span class="volume-indicator volume-medium"></span>MEDIO';
+                } else {
+                    elemento.className = 'badge bg-danger estado-diesel';
+                    volumeIndicator.className = 'volume-indicator volume-low';
+                    elemento.innerHTML = '<span class="volume-indicator volume-low"></span>BAJO';
+                }
+            }
         });
     </script>
 </body>

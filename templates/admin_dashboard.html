@@ -26,6 +26,7 @@
             padding: 0;
             box-shadow: 3px 0 10px rgba(0,0,0,0.1);
             z-index: 1000;
+            overflow-y: auto;
         }
         
         .sidebar-brand {
@@ -44,6 +45,10 @@
             margin: 5px 10px;
             border-radius: 8px;
             transition: all 0.3s;
+            border: none;
+            background: none;
+            text-align: left;
+            width: 100%;
         }
         
         .nav-link:hover, .nav-link.active {
@@ -204,13 +209,143 @@
         .time-input {
             font-size: 0.9rem;
         }
+
+        /* ================= RESPONSIVE DESIGN ================= */
+        @media (max-width: 1200px) {
+            .main-content {
+                margin-left: 220px;
+            }
+            
+            .sidebar {
+                width: 220px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                width: 280px;
+            }
+            
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 1001;
+                background: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px 15px;
+            }
+            
+            .header {
+                margin-top: 60px;
+            }
+            
+            .stats-cards {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-cards {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .stats-number {
+                font-size: 1.5rem;
+            }
+            
+            .table-responsive {
+                font-size: 0.8rem;
+            }
+            
+            .date-filter .row,
+            .tab-datos-filters .row {
+                flex-direction: column;
+            }
+            
+            .date-filter .col-md-8,
+            .tab-datos-filters .col-md-8 {
+                margin-bottom: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stats-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .card {
+                margin-bottom: 15px;
+            }
+            
+            .table th, .table td {
+                padding: 8px 10px;
+                font-size: 0.75rem;
+            }
+            
+            .filters .row {
+                flex-direction: column;
+            }
+            
+            .filters .col-md-3,
+            .filters .col-md-2 {
+                margin-bottom: 10px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+
+        /* Mobile menu overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        
+        .mobile-overlay.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn d-lg-none">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay"></div>
+
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-2 sidebar">
+            <div class="col-lg-2 sidebar">
                 <div class="sidebar-brand">
                     <h3><i class="fas fa-gas-pump"></i> Combustibles</h3>
                 </div>
@@ -246,7 +381,7 @@
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-10 main-content">
+            <div class="col-lg-10 main-content">
                 <div class="header">
                     <h1 class="text-primary mb-0"><i class="fas fa-tachometer-alt me-2"></i>Panel de Administración</h1>
                     <p class="text-muted mb-0">Bienvenido, {{ username }}</p>
@@ -341,7 +476,7 @@
 
                         <!-- Gráficos MEJORADOS -->
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-xl-6 col-lg-12 mb-4">
                                 <div class="card">
                                     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                                         <span><i class="fas fa-chart-bar me-2"></i> Top 15 Estaciones</span>
@@ -358,7 +493,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-xl-6 col-lg-12 mb-4">
                                 <div class="card">
                                     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                                         <span><i class="fas fa-chart-line me-2"></i> Evolución por Producto</span>
@@ -535,10 +670,9 @@
                     </div>
 
                     <!-- Tab Gestión de Usuarios -->
-                                        <!-- Tab Gestión de Usuarios MEJORADA -->
                     <div class="tab-pane fade" id="tab-usuarios">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-lg-6 mb-4">
                                 <div class="card">
                                     <div class="card-header bg-info text-white">
                                         <i class="fas fa-user-plus me-2"></i> Crear Usuario Individual
@@ -561,7 +695,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6">
+                            <div class="col-lg-6 mb-4">
                                 <div class="card">
                                     <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
                                         <span><i class="fas fa-users me-2"></i> Usuarios Existentes</span>
@@ -654,23 +788,7 @@
                             </div>
                         </div>
                         
-                        <div class="card mt-4">
-                            <div class="card-header bg-primary text-white">
-                                <i class="fas fa-info-circle me-2"></i> Información sobre Usuarios
-                            </div>
-                            <div class="card-body">
-                                <h5>Proceso de creación de usuarios:</h5>
-                                <ul>
-                                    <li><strong>Creación individual:</strong> Use el formulario superior para crear usuarios uno por uno</li>
-                                    <li><strong>Creación masiva:</strong> Al cargar un archivo CSV con la columna FUNCIONARIO, los usuarios se crean automáticamente</li>
-                                    <li><strong>Credenciales:</strong> Usuario = primera palabra del funcionario (minúsculas), Contraseña = usuario + "1234"</li>
-                                    <li><strong>Ejemplo:</strong> Funcionario "Juan Pérez" → Usuario: "juan", Contraseña: "juan1234"</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                        
-                        <div class="card mt-4">
+                        <div class="card">
                             <div class="card-header bg-primary text-white">
                                 <i class="fas fa-info-circle me-2"></i> Información sobre Usuarios
                             </div>
@@ -689,7 +807,7 @@
                     <!-- Tab Carga -->
                     <div class="tab-pane fade" id="tab-carga">
                         <div class="row">
-                            <div class="col-md-8 offset-md-2">
+                            <div class="col-12">
                                 <div class="card">
                                     <div class="card-header bg-primary text-white">
                                         <i class="fas fa-file-upload me-2"></i> Cargar Archivo de Datos
@@ -782,7 +900,35 @@
             initializeUserManagement();
             initializeDateFilter();
             initializeTabDatosDateFilter();
+            initializeMobileMenu();
         });
+
+        // Mobile Menu Functionality
+        function initializeMobileMenu() {
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            
+            if (mobileMenuBtn && sidebar) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('mobile-open');
+                    overlay.classList.toggle('active');
+                });
+                
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('mobile-open');
+                    overlay.classList.remove('active');
+                });
+                
+                // Close menu when clicking on a link
+                document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                    link.addEventListener('click', function() {
+                        sidebar.classList.remove('mobile-open');
+                        overlay.classList.remove('active');
+                    });
+                });
+            }
+        }
 
         function initializeCharts() {
             // Gráfico de Top 15 Estaciones (Barras Horizontales)
@@ -1033,7 +1179,7 @@
             // Filtro de búsqueda
             document.getElementById('searchInput').addEventListener('input', function() {
                 const searchTerm = this.value.toLowerCase();
-                const rows = document.querySelectorAll('tbody tr');
+                const rows = document.querySelectorAll('#tab-datos tbody tr');
                 
                 rows.forEach(row => {
                     const text = row.textContent.toLowerCase();
@@ -1043,68 +1189,146 @@
 
             // Filtro por zona
             document.getElementById('zonaFilter').addEventListener('change', function() {
-                const zona = this.value;
-                const rows = document.querySelectorAll('tbody tr');
-                
-                rows.forEach(row => {
-                    const zonaCell = row.cells[2].textContent;
-                    row.style.display = (!zona || zonaCell === zona) ? '' : 'none';
-                });
+                applyAllFilters();
             });
 
             // Filtro por estado
             document.getElementById('estadoFilter').addEventListener('change', function() {
-                const estado = this.value;
-                const rows = document.querySelectorAll('tbody tr');
+                applyAllFilters();
+            });
+
+            // Filtro por producto
+            document.getElementById('productoFilter').addEventListener('change', function() {
+                applyAllFilters();
+            });
+        }
+
+        function applyAllFilters() {
+            const zona = document.getElementById('zonaFilter').value;
+            const estado = document.getElementById('estadoFilter').value;
+            const producto = document.getElementById('productoFilter').value;
+            const rows = document.querySelectorAll('#tab-datos tbody tr');
+            
+            rows.forEach(row => {
+                const zonaCell = row.cells[2].textContent;
+                const estadoCell = row.cells[11].textContent.trim();
+                let showRow = true;
                 
-                rows.forEach(row => {
-                    const estadoCell = row.cells[11].textContent.trim();
-                    row.style.display = (!estado || estadoCell === estado) ? '' : 'none';
-                });
+                // Filtro por zona
+                if (zona && zonaCell !== zona) {
+                    showRow = false;
+                }
+                
+                // Filtro por estado
+                if (estado && estadoCell !== estado) {
+                    showRow = false;
+                }
+                
+                // Filtro por producto
+                if (producto && showRow) {
+                    let productoValue = 0;
+                    switch(producto) {
+                        case 'DO/DO+': productoValue = parseInt(row.cells[5].textContent.replace(/,/g, '')) || 0; break;
+                        case 'DO ULS+': productoValue = parseInt(row.cells[6].textContent.replace(/,/g, '')) || 0; break;
+                        case 'GE/GE+': productoValue = parseInt(row.cells[7].textContent.replace(/,/g, '')) || 0; break;
+                        case 'GP+': productoValue = parseInt(row.cells[8].textContent.replace(/,/g, '')) || 0; break;
+                        case 'GP ULTRA 100': productoValue = parseInt(row.cells[9].textContent.replace(/,/g, '')) || 0; break;
+                    }
+                    if (productoValue <= 0) {
+                        showRow = false;
+                    }
+                }
+                
+                row.style.display = showRow ? '' : 'none';
             });
         }
 
         function initializeUserManagement() {
-            // Gestión de usuarios
-            const crearUsuarioForm = document.getElementById('crearUsuarioForm');
-            if (crearUsuarioForm) {
-                crearUsuarioForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
+            // Gestión de usuarios - Editar y Eliminar
+            document.querySelectorAll('.btn-editar-usuario').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const username = this.getAttribute('data-username');
+                    const funcionario = this.getAttribute('data-funcionario');
+                    const rol = this.getAttribute('data-rol');
                     
-                    const funcionario = document.getElementById('funcionario').value;
+                    document.getElementById('editarUsuarioId').value = id;
+                    document.getElementById('editarUsuarioUsername').value = username;
+                    document.getElementById('editarUsuarioFuncionario').value = funcionario;
+                    document.getElementById('editarUsuarioRol').value = rol;
                     
-                    // Mostrar loading
-                    const submitBtn = crearUsuarioForm.querySelector('button[type="submit"]');
-                    const originalText = submitBtn.innerHTML;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creando...';
-                    submitBtn.disabled = true;
-                    
-                    fetch('/admin/crear_usuario', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `funcionario=${encodeURIComponent(funcionario)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('✅ ' + data.message);
-                            document.getElementById('crearUsuarioForm').reset();
-                            location.reload();
-                        } else {
-                            alert('❌ ' + data.message);
-                            submitBtn.innerHTML = originalText;
-                            submitBtn.disabled = false;
-                        }
-                    })
-                    .catch(error => {
-                        alert('❌ Error al crear usuario: ' + error);
-                        submitBtn.innerHTML = originalText;
-                        submitBtn.disabled = false;
-                    });
+                    const modal = new bootstrap.Modal(document.getElementById('modalEditarUsuario'));
+                    modal.show();
                 });
-            }
+            });
+            
+            // Guardar cambios de usuario
+            document.getElementById('btnGuardarUsuario').addEventListener('click', function() {
+                const id = document.getElementById('editarUsuarioId').value;
+                const username = document.getElementById('editarUsuarioUsername').value;
+                const funcionario = document.getElementById('editarUsuarioFuncionario').value;
+                const rol = document.getElementById('editarUsuarioRol').value;
+                
+                if (!username || !funcionario) {
+                    alert('Por favor complete todos los campos');
+                    return;
+                }
+                
+                fetch('/admin/editar_usuario', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id,
+                        username: username,
+                        funcionario: funcionario,
+                        rol: rol
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ ' + data.message);
+                        location.reload();
+                    } else {
+                        alert('❌ ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('❌ Error al editar usuario: ' + error);
+                });
+            });
+            
+            // Eliminar Usuario
+            document.querySelectorAll('.btn-eliminar-usuario').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const username = this.getAttribute('data-username');
+                    
+                    if (confirm(`¿Está seguro de eliminar al usuario "${username}"? Esta acción no se puede deshacer.`)) {
+                        fetch('/admin/eliminar_usuario', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ id: id })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('✅ ' + data.message);
+                                location.reload();
+                            } else {
+                                alert('❌ ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            alert('❌ Error al eliminar usuario: ' + error);
+                        });
+                    }
+                });
+            });
         }
 
         function initializeDateFilter() {
@@ -1233,97 +1457,6 @@
                 tabDatosHoraFinInput.value = '23:59';
             }
         }
-
-        // Gestión de Usuarios - Editar y Eliminar
-        function initializeUserManagement() {
-            // Editar Usuario
-            document.querySelectorAll('.btn-editar-usuario').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const id = this.getAttribute('data-id');
-                    const username = this.getAttribute('data-username');
-                    const funcionario = this.getAttribute('data-funcionario');
-                    const rol = this.getAttribute('data-rol');
-                    
-                    document.getElementById('editarUsuarioId').value = id;
-                    document.getElementById('editarUsuarioUsername').value = username;
-                    document.getElementById('editarUsuarioFuncionario').value = funcionario;
-                    document.getElementById('editarUsuarioRol').value = rol;
-                    
-                    const modal = new bootstrap.Modal(document.getElementById('modalEditarUsuario'));
-                    modal.show();
-                });
-            });
-            
-            // Guardar cambios de usuario
-            document.getElementById('btnGuardarUsuario').addEventListener('click', function() {
-                const id = document.getElementById('editarUsuarioId').value;
-                const username = document.getElementById('editarUsuarioUsername').value;
-                const funcionario = document.getElementById('editarUsuarioFuncionario').value;
-                const rol = document.getElementById('editarUsuarioRol').value;
-                
-                if (!username || !funcionario) {
-                    alert('Por favor complete todos los campos');
-                    return;
-                }
-                
-                fetch('/admin/editar_usuario', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        id: id,
-                        username: username,
-                        funcionario: funcionario,
-                        rol: rol
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('✅ ' + data.message);
-                        location.reload();
-                    } else {
-                        alert('❌ ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    alert('❌ Error al editar usuario: ' + error);
-                });
-            });
-            
-            // Eliminar Usuario
-            document.querySelectorAll('.btn-eliminar-usuario').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const id = this.getAttribute('data-id');
-                    const username = this.getAttribute('data-username');
-                    
-                    if (confirm(`¿Está seguro de eliminar al usuario "${username}"? Esta acción no se puede deshacer.`)) {
-                        fetch('/admin/eliminar_usuario', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ id: id })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                alert('✅ ' + data.message);
-                                location.reload();
-                            } else {
-                                alert('❌ ' + data.message);
-                            }
-                        })
-                        .catch(error => {
-                            alert('❌ Error al eliminar usuario: ' + error);
-                        });
-                    }
-                });
-            });
-        }
-        
     </script>
 </body>
-
 </html>

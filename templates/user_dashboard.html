@@ -50,6 +50,10 @@
             color: white;
         }
         
+        .navbar-brand {
+            font-weight: bold;
+        }
+        
         /* Responsive */
         @media (max-width: 768px) {
             .header h1 {
@@ -97,59 +101,97 @@
             <form id="dataForm" method="POST" action="{{ url_for('usuario.submit_data') }}">
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="estacion" class="form-label">Estación</label>
+                        <label for="estacion" class="form-label">Estación *</label>
                         <select class="form-control" id="estacion" name="estacion" required>
                             <option value="">Seleccionar estación</option>
                             {% for estacion in current_user.estaciones %}
                             <option value="{{ estacion.nombre }}">{{ estacion.nombre }}</option>
                             {% endfor %}
                         </select>
+                        <div class="invalid-feedback">
+                            Por favor seleccione una estación.
+                        </div>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="producto" class="form-label">Producto</label>
+                        <label for="producto" class="form-label">Producto *</label>
                         <select class="form-control" id="producto" name="producto" required>
                             <option value="">Seleccionar producto</option>
                             <option value="GES">GES</option>
                             <option value="DOS">DOS</option>
                         </select>
+                        <div class="invalid-feedback">
+                            Por favor seleccione un producto.
+                        </div>
                     </div>
                 </div>
                 
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label for="litros" class="form-label">Litros</label>
-                        <input type="number" step="0.01" class="form-control" id="litros" name="litros" required>
+                        <label for="litros" class="form-label">Litros *</label>
+                        <input type="number" step="0.01" class="form-control" id="litros" name="litros" required min="0">
+                        <div class="invalid-feedback">
+                            Por favor ingrese la cantidad de litros.
+                        </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label for="precio" class="form-label">Precio Unitario ($)</label>
-                        <input type="number" step="0.01" class="form-control" id="precio" name="precio" required>
+                        <label for="precio" class="form-label">Precio Unitario ($) *</label>
+                        <input type="number" step="0.01" class="form-control" id="precio" name="precio" required min="0">
+                        <div class="invalid-feedback">
+                            Por favor ingrese el precio unitario.
+                        </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label for="fecha" class="form-label">Fecha</label>
+                        <label for="fecha" class="form-label">Fecha *</label>
                         <input type="date" class="form-control" id="fecha" name="fecha" required>
+                        <div class="invalid-feedback">
+                            Por favor seleccione la fecha.
+                        </div>
                     </div>
                 </div>
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="turno" class="form-label">Turno</label>
+                        <label for="turno" class="form-label">Turno *</label>
                         <select class="form-control" id="turno" name="turno" required>
                             <option value="">Seleccionar turno</option>
                             <option value="Mañana">Mañana</option>
                             <option value="Tarde">Tarde</option>
                             <option value="Noche">Noche</option>
                         </select>
+                        <div class="invalid-feedback">
+                            Por favor seleccione un turno.
+                        </div>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="empleado" class="form-label">Empleado Responsable</label>
-                        <input type="text" class="form-control" id="empleado" name="empleado" value="{{ funcionario }}" required>
+                        <label for="empleado" class="form-label">Empleado Responsable *</label>
+                        <input type="text" class="form-control" id="empleado" name="empleado" value="{{ funcionario }}" required readonly>
+                        <div class="form-text">Este campo se completa automáticamente</div>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-12 mb-3">
                         <label for="observaciones" class="form-label">Observaciones</label>
-                        <textarea class="form-control" id="observaciones" name="observaciones" rows="3"></textarea>
+                        <textarea class="form-control" id="observaciones" name="observaciones" rows="3" placeholder="Observaciones adicionales..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Resumen de la transacción -->
+                <div class="card bg-light mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Resumen de la Transacción</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Litros:</strong> <span id="resumen-litros">0</span> L</p>
+                                <p><strong>Precio Unitario:</strong> $<span id="resumen-precio">0.00</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Total:</strong> $<span id="resumen-total">0.00</span></p>
+                                <p><strong>Producto:</strong> <span id="resumen-producto">-</span></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -203,11 +245,54 @@
             // Establecer fecha actual por defecto
             document.getElementById('fecha').valueAsDate = new Date();
             
+            // Elementos del DOM para el resumen
+            const litrosInput = document.getElementById('litros');
+            const precioInput = document.getElementById('precio');
+            const productoSelect = document.getElementById('producto');
+            const resumenLitros = document.getElementById('resumen-litros');
+            const resumenPrecio = document.getElementById('resumen-precio');
+            const resumenTotal = document.getElementById('resumen-total');
+            const resumenProducto = document.getElementById('resumen-producto');
+            
+            // Función para actualizar el resumen
+            function actualizarResumen() {
+                const litros = parseFloat(litrosInput.value) || 0;
+                const precio = parseFloat(precioInput.value) || 0;
+                const producto = productoSelect.value || '-';
+                const total = litros * precio;
+                
+                resumenLitros.textContent = litros.toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                
+                resumenPrecio.textContent = precio.toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                
+                resumenTotal.textContent = total.toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                
+                resumenProducto.textContent = producto;
+            }
+            
+            // Event listeners para actualizar el resumen
+            litrosInput.addEventListener('input', actualizarResumen);
+            precioInput.addEventListener('input', actualizarResumen);
+            productoSelect.addEventListener('change', actualizarResumen);
+            
+            // Inicializar el resumen
+            actualizarResumen();
+            
             // Validación del formulario
             document.getElementById('dataForm').addEventListener('submit', function(e) {
                 let isValid = true;
                 const inputs = this.querySelectorAll('input[required], select[required]');
                 
+                // Validar campos requeridos
                 inputs.forEach(input => {
                     if (!input.value.trim()) {
                         isValid = false;
@@ -217,18 +302,97 @@
                     }
                 });
                 
+                // Validar valores numéricos positivos
+                const litros = parseFloat(litrosInput.value);
+                const precio = parseFloat(precioInput.value);
+                
+                if (litros <= 0) {
+                    isValid = false;
+                    litrosInput.classList.add('is-invalid');
+                }
+                
+                if (precio <= 0) {
+                    isValid = false;
+                    precioInput.classList.add('is-invalid');
+                }
+                
                 if (!isValid) {
                     e.preventDefault();
-                    alert('Por favor, complete todos los campos requeridos.');
+                    
+                    // Mostrar mensaje de error
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Por favor, complete todos los campos requeridos correctamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    
+                    // Insertar después del formulario
+                    this.parentNode.insertBefore(alertDiv, this.nextSibling);
+                    
+                    // Desplazarse al primer campo con error
+                    const firstInvalid = this.querySelector('.is-invalid');
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstInvalid.focus();
+                    }
+                } else {
+                    // Mostrar loading en el botón
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Guardando...';
+                    submitBtn.disabled = true;
+                    
+                    // Restaurar el botón después de 5 segundos (por si hay algún error)
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }, 5000);
                 }
             });
 
-            // Remover clase invalid cuando se escribe
+            // Remover clase invalid cuando se escribe o selecciona
             document.querySelectorAll('input, select').forEach(element => {
                 element.addEventListener('input', function() {
                     this.classList.remove('is-invalid');
+                    
+                    // Remover alertas de error
+                    const errorAlerts = document.querySelectorAll('.alert-danger');
+                    errorAlerts.forEach(alert => alert.remove());
+                });
+                
+                element.addEventListener('change', function() {
+                    this.classList.remove('is-invalid');
                 });
             });
+            
+            // Función para limpiar el formulario
+            document.querySelector('button[type="reset"]').addEventListener('click', function() {
+                // Remover clases de validación
+                document.querySelectorAll('.is-invalid').forEach(el => {
+                    el.classList.remove('is-invalid');
+                });
+                
+                // Remover alertas de error
+                document.querySelectorAll('.alert-danger').forEach(alert => {
+                    alert.remove();
+                });
+                
+                // Restablecer fecha actual
+                document.getElementById('fecha').valueAsDate = new Date();
+                
+                // Actualizar resumen
+                setTimeout(actualizarResumen, 100);
+            });
+            
+            // Mejorar la experiencia en móviles
+            if (window.innerWidth < 768) {
+                // Enfocar el primer campo al cargar en móviles
+                setTimeout(() => {
+                    document.getElementById('estacion').focus();
+                }, 500);
+            }
         });
     </script>
 </body>

@@ -25,3 +25,10 @@ Thumbs.db
 # Virtual environment
 venv/
 env/
+
+# Uploads
+uploads/
+
+# Temporary files
+*.tmp
+*.temp

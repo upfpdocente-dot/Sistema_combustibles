@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from io import StringIO, BytesIO
+from openpyxl import Workbook
 
 # Crear la aplicación Flask primero
 app = Flask(__name__)
@@ -70,6 +71,21 @@ class Usuario(db.Model):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+class CargaArchivo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    fecha_hora = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    usuario = db.Column(db.String(100), nullable=False)
+    nombre_archivo = db.Column(db.String(200), nullable=False)
+    registros_procesados = db.Column(db.Integer, default=0)
+
+class AsignacionEstacion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    codigo_estacion = db.Column(db.String(50), nullable=False)
+    fecha_asignacion = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    usuario = db.relationship('Usuario', backref=db.backref('asignaciones', lazy=True))
 
 class RegistroCombustible(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -218,8 +234,14 @@ def calcular_estadisticas_globales(registros, fecha_inicio=None, fecha_fin=None)
     if not registros:
         return {
             'total_estaciones': 0,
+            'total_estaciones_ges': 0,
+            'total_estaciones_dos': 0,
             'total_volumen': 0,
+            'total_volumen_ges': 0,
+            'total_volumen_dos': 0,
             'estaciones_rojo': 0,
+            'estaciones_rojo_ges': 0,
+            'estaciones_rojo_dos': 0,
             'promedio_filas_ciudad': 0,
             'promedio_filas_provincia': 0,
             'volumen_por_producto': {
@@ -238,7 +260,21 @@ def calcular_estadisticas_globales(registros, fecha_inicio=None, fecha_fin=None)
     
     total_estaciones = len(registros)
     total_volumen = sum(r.calcular_volumen_total() for r in registros)
+    
+    # Calcular estaciones GES y DOS
+    estaciones_ges = [r for r in registros if r.calcular_ges() > 0]
+    estaciones_dos = [r for r in registros if r.calcular_dos() > 0]
+    total_estaciones_ges = len(estaciones_ges)
+    total_estaciones_dos = len(estaciones_dos)
+    
+    # Calcular volúmenes GES y DOS
+    total_volumen_ges = sum(r.calcular_ges() for r in registros)
+    total_volumen_dos = sum(r.calcular_dos() for r in registros)
+    
+    # Estaciones en rojo (total < 3000)
     estaciones_rojo = sum(1 for r in registros if r.calcular_volumen_total() < 3000)
+    estaciones_rojo_ges = sum(1 for r in registros if r.calcular_ges() < 3000 and r.calcular_ges() > 0)
+    estaciones_rojo_dos = sum(1 for r in registros if r.calcular_dos() < 3000 and r.calcular_dos() > 0)
     
     filas_ciudad = [r.filas_do_do_plus + r.filas_ge_ge_plus for r in registros]
     promedio_filas_ciudad = sum(filas_ciudad) / len(filas_ciudad) if filas_ciudad else 0
@@ -284,8 +320,14 @@ def calcular_estadisticas_globales(registros, fecha_inicio=None, fecha_fin=None)
     
     return {
         'total_estaciones': total_estaciones,
+        'total_estaciones_ges': total_estaciones_ges,
+        'total_estaciones_dos': total_estaciones_dos,
         'total_volumen': total_volumen,
+        'total_volumen_ges': total_volumen_ges,
+        'total_volumen_dos': total_volumen_dos,
         'estaciones_rojo': estaciones_rojo,
+        'estaciones_rojo_ges': estaciones_rojo_ges,
+        'estaciones_rojo_dos': estaciones_rojo_dos,
         'promedio_filas_ciudad': round(promedio_filas_ciudad, 1),
         'promedio_filas_provincia': round(promedio_filas_provincia, 1),
         'volumen_por_producto': volumen_por_producto,
@@ -380,6 +422,9 @@ def admin_dashboard():
         
         usuarios = Usuario.query.all()
         
+        # OBTENER ÚLTIMA CARGA DE ARCHIVO
+        ultima_carga = CargaArchivo.query.order_by(CargaArchivo.fecha_hora.desc()).first()
+        
         return render_template('admin_dashboard.html', 
                              fuel_data=fuel_data, 
                              stats=stats,
@@ -388,7 +433,8 @@ def admin_dashboard():
                              fecha_inicio=fecha_inicio_str or fecha_inicio.strftime('%Y-%m-%d') if fecha_inicio else '',
                              fecha_fin=fecha_fin_str or fecha_fin.strftime('%Y-%m-%d') if fecha_fin else '',
                              hora_inicio=hora_inicio_str or '',
-                             hora_fin=hora_fin_str or '')
+                             hora_fin=hora_fin_str or '',
+                             ultima_carga=ultima_carga)  # NUEVO PARÁMETRO
     except Exception as e:
         flash(f'Error al cargar datos: {str(e)}', 'error')
         return redirect(url_for('login'))
@@ -402,18 +448,38 @@ def user_dashboard():
     try:
         funcionario = session.get('funcionario')
         
-        subquery = db.session.query(
-            RegistroCombustible.codigo,
-            db.func.max(RegistroCombustible.fecha_hora).label('max_fecha')
-        ).filter(RegistroCombustible.funcionario == funcionario).group_by(RegistroCombustible.codigo).subquery()
+        # Obtener estaciones asignadas al usuario
+        asignaciones = AsignacionEstacion.query.filter_by(usuario_id=session.get('user_id')).all()
+        codigos_estaciones = [asignacion.codigo_estacion for asignacion in asignaciones]
         
-        registros = db.session.query(RegistroCombustible).join(
-            subquery,
-            db.and_(
-                RegistroCombustible.codigo == subquery.c.codigo,
-                RegistroCombustible.fecha_hora == subquery.c.max_fecha
-            )
-        ).filter(RegistroCombustible.funcionario == funcionario).all()
+        if not codigos_estaciones:
+            # Si no tiene asignaciones, usar el método anterior
+            subquery = db.session.query(
+                RegistroCombustible.codigo,
+                db.func.max(RegistroCombustible.fecha_hora).label('max_fecha')
+            ).filter(RegistroCombustible.funcionario == funcionario).group_by(RegistroCombustible.codigo).subquery()
+            
+            registros = db.session.query(RegistroCombustible).join(
+                subquery,
+                db.and_(
+                    RegistroCombustible.codigo == subquery.c.codigo,
+                    RegistroCombustible.fecha_hora == subquery.c.max_fecha
+                )
+            ).filter(RegistroCombustible.funcionario == funcionario).all()
+        else:
+            # Usar estaciones asignadas
+            subquery = db.session.query(
+                RegistroCombustible.codigo,
+                db.func.max(RegistroCombustible.fecha_hora).label('max_fecha')
+            ).filter(RegistroCombustible.codigo.in_(codigos_estaciones)).group_by(RegistroCombustible.codigo).subquery()
+            
+            registros = db.session.query(RegistroCombustible).join(
+                subquery,
+                db.and_(
+                    RegistroCombustible.codigo == subquery.c.codigo,
+                    RegistroCombustible.fecha_hora == subquery.c.max_fecha
+                )
+            ).filter(RegistroCombustible.codigo.in_(codigos_estaciones)).all()
         
         fuel_data = [registro.to_dict() for registro in registros]
         
@@ -527,6 +593,107 @@ def eliminar_usuario():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error al eliminar usuario: {str(e)}'}), 500
 
+# ================= RUTAS PARA GESTIÓN DE CONTRASEÑAS =================
+@app.route('/admin/editar_password', methods=['POST'])
+def editar_password():
+    if 'user' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Acceso denegado'}), 403
+    
+    try:
+        data = request.get_json()
+        usuario_id = data.get('id')
+        nueva_password = data.get('nueva_password')
+        
+        if not usuario_id or not nueva_password:
+            return jsonify({'success': False, 'message': 'Datos incompletos'}), 400
+        
+        usuario = Usuario.query.get(usuario_id)
+        if not usuario:
+            return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
+        
+        usuario.set_password(nueva_password)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Contraseña actualizada correctamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error al editar contraseña: {str(e)}'}), 500
+
+# ================= RUTAS PARA ASIGNACIÓN DE ESTACIONES =================
+@app.route('/admin/asignar_estaciones', methods=['POST'])
+def asignar_estaciones():
+    if 'user' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Acceso denegado'}), 403
+    
+    try:
+        data = request.get_json()
+        usuario_id = data.get('usuario_id')
+        estaciones = data.get('estaciones', [])
+        
+        if not usuario_id:
+            return jsonify({'success': False, 'message': 'Usuario ID requerido'}), 400
+        
+        # Eliminar asignaciones existentes
+        AsignacionEstacion.query.filter_by(usuario_id=usuario_id).delete()
+        
+        # Agregar nuevas asignaciones
+        for codigo_estacion in estaciones:
+            nueva_asignacion = AsignacionEstacion(
+                usuario_id=usuario_id,
+                codigo_estacion=codigo_estacion.strip()
+            )
+            db.session.add(nueva_asignacion)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Se asignaron {len(estaciones)} estaciones al usuario'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error al asignar estaciones: {str(e)}'}), 500
+
+@app.route('/admin/obtener_estaciones_usuario/<int:usuario_id>')
+def obtener_estaciones_usuario(usuario_id):
+    if 'user' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Acceso denegado'}), 403
+    
+    try:
+        asignaciones = AsignacionEstacion.query.filter_by(usuario_id=usuario_id).all()
+        estaciones = [asignacion.codigo_estacion for asignacion in asignaciones]
+        
+        return jsonify({
+            'success': True, 
+            'estaciones': estaciones
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error al obtener estaciones: {str(e)}'}), 500
+
+@app.route('/admin/obtener_todas_estaciones')
+def obtener_todas_estaciones():
+    if 'user' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Acceso denegado'}), 403
+    
+    try:
+        # Obtener códigos únicos de estaciones
+        estaciones = db.session.query(RegistroCombustible.codigo, RegistroCombustible.razon_social).distinct().all()
+        estaciones_lista = [{'codigo': est[0], 'nombre': est[1]} for est in estaciones]
+        
+        return jsonify({
+            'success': True, 
+            'estaciones': estaciones_lista
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error al obtener estaciones: {str(e)}'}), 500
+
 # ================= RUTA CORREGIDA PARA ACTUALIZAR ESTACIONES =================
 @app.route('/user/actualizar_estacion', methods=['POST'])
 def actualizar_estacion():
@@ -542,8 +709,7 @@ def actualizar_estacion():
         
         # Buscar si existe un registro anterior para esta estación
         registro_anterior = RegistroCombustible.query.filter_by(
-            codigo=codigo, 
-            funcionario=session.get('funcionario')
+            codigo=codigo
         ).order_by(RegistroCombustible.fecha_hora.desc()).first()
         
         # Crear NUEVO registro (siempre crear nuevo, no actualizar existente)
@@ -718,6 +884,15 @@ def upload_file():
             
             db.session.commit()
             
+            # Registrar la carga del archivo
+            nueva_carga = CargaArchivo(
+                usuario=session.get('user'),
+                nombre_archivo=file.filename,
+                registros_procesados=processed_count
+            )
+            db.session.add(nueva_carga)
+            db.session.commit()
+            
             mensaje = f'Archivo procesado correctamente. {processed_count} registros creados.'
             if usuarios_creados:
                 mensaje += f' {len(usuarios_creados)} usuarios creados.'
@@ -806,6 +981,84 @@ def export_csv():
         
     except Exception as e:
         flash(f'Error al exportar datos: {str(e)}', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/export/excel')
+def export_excel():
+    if 'user' not in session or session.get('role') != 'admin':
+        flash('Acceso denegado', 'error')
+        return redirect(url_for('login'))
+    
+    try:
+        fecha_inicio_str = request.args.get('fecha_inicio')
+        fecha_fin_str = request.args.get('fecha_fin')
+        hora_inicio_str = request.args.get('hora_inicio')
+        hora_fin_str = request.args.get('hora_fin')
+        
+        fecha_inicio = None
+        fecha_fin = None
+        
+        if fecha_inicio_str:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d')
+        if fecha_fin_str:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d')
+        
+        registros = obtener_ultimos_registros(fecha_inicio, fecha_fin, hora_inicio_str, hora_fin_str)
+        
+        # Crear archivo Excel en memoria
+        output = BytesIO()
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Datos Combustibles"
+        
+        # Encabezados
+        headers = [
+            'CODIGO', 'RAZON SOCIAL ANH', 'ZONA', 'PROVINCIA', 'MUNICIPIO',
+            'DO/DO+ (LTS)', 'DO ULS+ (LTS)', 'GE/GE+ (LTS)', 'GP+ (LTS)', 
+            'GPULTRA100 (LTS)', 'VOLUMEN TOTAL', 'ESTADO', 'FUNCIONARIO',
+            'FILAS DO/DO+', 'FILAS GE/GE+', 'FECHA Y HORA DE ACTUALIZACION', 'USUARIO_ACTUALIZACION'
+        ]
+        
+        for col, header in enumerate(headers, 1):
+            worksheet.cell(row=1, column=col, value=header)
+        
+        # Datos
+        for row, registro in enumerate(registros, 2):
+            estado = registro.get_estado_volumen()
+            
+            worksheet.cell(row=row, column=1, value=registro.codigo)
+            worksheet.cell(row=row, column=2, value=registro.razon_social)
+            worksheet.cell(row=row, column=3, value=registro.zona)
+            worksheet.cell(row=row, column=4, value=registro.provincia)
+            worksheet.cell(row=row, column=5, value=registro.municipio)
+            worksheet.cell(row=row, column=6, value=registro.do_do_plus)
+            worksheet.cell(row=row, column=7, value=registro.do_uls_plus)
+            worksheet.cell(row=row, column=8, value=registro.ge_ge_plus)
+            worksheet.cell(row=row, column=9, value=registro.gp_plus)
+            worksheet.cell(row=row, column=10, value=registro.gp_ultra_100)
+            worksheet.cell(row=row, column=11, value=registro.calcular_volumen_total())
+            worksheet.cell(row=row, column=12, value=estado['text'])
+            worksheet.cell(row=row, column=13, value=registro.funcionario)
+            worksheet.cell(row=row, column=14, value=registro.filas_do_do_plus)
+            worksheet.cell(row=row, column=15, value=registro.filas_ge_ge_plus)
+            worksheet.cell(row=row, column=16, value=registro.fecha_hora.strftime('%Y-%m-%d %H:%M:%S'))
+            worksheet.cell(row=row, column=17, value=registro.usuario_actualizacion or '')
+        
+        workbook.save(output)
+        output.seek(0)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'datos_combustibles_{timestamp}.xlsx'
+        
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+    except Exception as e:
+        flash(f'Error al exportar datos Excel: {str(e)}', 'error')
         return redirect(url_for('admin_dashboard'))
 
 @app.route('/force-init')
